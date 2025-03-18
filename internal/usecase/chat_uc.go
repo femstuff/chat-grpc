@@ -1,10 +1,19 @@
 package usecase
 
 import (
+	"log"
+	"time"
+
 	"chat-grpc/internal/entity"
 	"chat-grpc/internal/repository"
-	"time"
 )
+
+type ChatUseCaseInterface interface {
+	Create(name string, users []int64, chatType entity.TypeChat) (int, error)
+	Delete(chatID int64) error
+	SendMessage(chatID int64, contentMsg string, sender int64) error
+	Connect(chatID, userID int64) error
+}
 
 type ChatUseCase struct {
 	repo repository.ChatRepo
@@ -15,6 +24,7 @@ func NewChatUseCase(repo repository.ChatRepo) *ChatUseCase {
 }
 
 func (uc *ChatUseCase) Create(name string, users []int64, chatType entity.TypeChat) (int, error) {
+	log.Printf("uc layer\n")
 	chat := &entity.Chat{
 		Name:      name,
 		Users:     users,
