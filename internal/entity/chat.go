@@ -10,9 +10,9 @@ const (
 )
 
 type Chat struct {
-	ID        int
+	ID        int64
 	Name      string
-	Users     []int
+	Users     []int64
 	Type      TypeChat
 	CreatedAt time.Time
 	UpdateAt  time.Time
