@@ -1,21 +1,24 @@
 package service
 
 import (
+	"errors"
+	"log"
+
 	"chat-grpc/internal/entity"
 	"chat-grpc/internal/usecase"
 	"chat-grpc/proto"
-	"errors"
 )
 
 type ChatService struct {
-	useCase *usecase.ChatUseCase
+	useCase usecase.ChatUseCaseInterface
 }
 
-func NewChatService(useCase *usecase.ChatUseCase) *ChatService {
+func NewChatService(useCase usecase.ChatUseCaseInterface) *ChatService {
 	return &ChatService{useCase: useCase}
 }
 
 func (cs *ChatService) CreateChat(req *proto.CreateChatRequest) (*proto.CreateChatResponse, error) {
+	log.Print("service layer\n")
 	chatId, err := cs.useCase.Create(req.Name, req.Users, entity.TypeChat(req.Type))
 	if err != nil {
 		return nil, errors.New("fail with create chat")
