@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "/proto_gen";
+
+service AuthService {
+  rpc Create(CreateUserRequest) returns (CreateUserResponse);
+  rpc Get(GetUserRequest) returns (GetUserResponse);
+  rpc GetList(AuthEmpty) returns (GetListResponse);
+  rpc Update(UpdateUserRequest) returns (AuthEmpty);
+  rpc Delete(DeleteUserRequest) returns (AuthEmpty);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GetRefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc GetAccessToken(AccessTokenRequest) returns (AccessTokenResponse);
+  rpc Check(CheckAccessRequest) returns (AuthEmpty);
+}
+
+message AuthEmpty {}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+  Role role = 4;
+}
+
+message CreateUserResponse {
+  int64 id = 1;
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int64 id = 1;
+  string name = 2;
+  string email = 3;
+  Role role = 4;
+  Timestamp created_at = 5;
+  Timestamp updated_at = 6;
+}
+
+message GetListResponse {
+  repeated GetUserResponse users = 1;
+}
+
+message UpdateUserRequest {
+  int64 id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message DeleteUserRequest {
+  int64 id = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string refresh_token = 1;
+}
+
+message RefreshTokenRequest {
+  string old_refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string refresh_token = 1;
+}
+
+message AccessTokenRequest {
+  string refresh_token = 1;
+}
+
+message AccessTokenResponse {
+  string access_token = 1;
+}
+
+message CheckAccessRequest {
+  string endpoint_address = 1;
+}
+
+enum Role {
+  UserRole = 0;
+  AdminRole = 1;
+}
