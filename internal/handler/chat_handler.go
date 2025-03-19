@@ -2,11 +2,10 @@ package handler
 
 import (
 	"errors"
-	"log"
 
 	"chat-grpc/internal/entity"
 	"chat-grpc/internal/usecase"
-	"chat-grpc/proto"
+	"chat-grpc/proto_gen"
 )
 
 type ChatService struct {
@@ -17,36 +16,40 @@ func NewChatService(useCase usecase.ChatUseCaseInterface) *ChatService {
 	return &ChatService{useCase: useCase}
 }
 
-func (cs *ChatService) CreateChat(req *proto.CreateChatRequest) (*proto.CreateChatResponse, error) {
-	log.Print("service layer\n")
-	chatId, err := cs.useCase.Create(req.Name, req.Users, entity.TypeChat(req.Type))
+func (cs *ChatService) CreateChat(req *proto_gen.CreateChatRequest) (*proto_gen.CreateChatResponse, error) {
+	chatType, err := entity.StringType(req.Type)
+	if err != nil {
+		return nil, errors.New("invalid chat type")
+	}
+
+	chatId, err := cs.useCase.Create(req.Name, req.Users, chatType)
 	if err != nil {
 		return nil, errors.New("fail with create chat")
 	}
-	return &proto.CreateChatResponse{ChatId: int64(chatId)}, nil
+	return &proto_gen.CreateChatResponse{ChatId: int64(chatId)}, nil
 }
 
-func (cs *ChatService) DeleteChat(req *proto.DeleteChatRequest) (*proto.DeleteChatResponse, error) {
-	log.Print("service layer del")
+func (cs *ChatService) DeleteChat(req *proto_gen.DeleteChatRequest) (*proto_gen.ChatEmpty, error) {
 	err := cs.useCase.Delete(req.ChatId)
 	if err != nil {
 		return nil, errors.New("fail with delete chat")
 	}
-	return &proto.DeleteChatResponse{}, nil
+	return &proto_gen.ChatEmpty{}, nil
 }
 
-func (cs *ChatService) SendMessage(req *proto.SendMessageRequest) (*proto.SendMessageResponse, error) {
-	err := cs.useCase.SendMessage(req.ChatId, req.Text, req.SenderId)
+func (cs *ChatService) SendMessage(req *proto_gen.SendMessageRequest) (*proto_gen.ChatEmpty, error) {
+	err := cs.useCase.SendMessage(req.Sender, req.Text, req.Timestamp)
 	if err != nil {
 		return nil, errors.New("fail with send message")
 	}
-	return &proto.SendMessageResponse{}, nil
+
+	return &proto_gen.ChatEmpty{}, nil
 }
 
-func (cs *ChatService) ConnectToChat(req *proto.ConnectChatRequest) (*proto.ConnectChatResponse, error) {
+func (cs *ChatService) ConnectToChat(req *proto_gen.ConnectChatRequest) (*proto_gen.Message, error) {
 	err := cs.useCase.Connect(req.ChatId, req.UserId)
 	if err != nil {
 		return nil, errors.New("error with connect to chat")
 	}
-	return &proto.ConnectChatResponse{}, nil
+	return &proto_gen.Message{}, nil
 }

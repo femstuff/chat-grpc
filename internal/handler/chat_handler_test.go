@@ -5,7 +5,7 @@ import (
 
 	"chat-grpc/internal/entity"
 	"chat-grpc/internal/usecase/mocks"
-	"chat-grpc/proto"
+	"chat-grpc/proto_gen"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,10 +18,10 @@ func TestCreateChat(t *testing.T) {
 	}
 	service := NewChatService(mockUseCase)
 
-	req := &proto.CreateChatRequest{
+	req := &proto_gen.CreateChatRequest{
 		Name:  "test",
 		Users: []int64{1, 2},
-		Type:  proto.ChatType(entity.PrivateChat),
+		Type:  "public",
 	}
 	resp, err := service.CreateChat(req)
 
@@ -37,7 +37,7 @@ func TestDeleteChat(t *testing.T) {
 	}
 	service := NewChatService(mockUseCase)
 
-	req := &proto.DeleteChatRequest{
+	req := &proto_gen.DeleteChatRequest{
 		ChatId: 1,
 	}
 	resp, err := service.DeleteChat(req)
@@ -48,16 +48,16 @@ func TestDeleteChat(t *testing.T) {
 
 func TestSendMessage(t *testing.T) {
 	mockUseCase := &mocks.MockChatUseCase{
-		SendMessageFunc: func(chatID int64, contentMsg string, sender int64) error {
+		SendMessageFunc: func(sender, text, timestamps string) error {
 			return nil
 		},
 	}
 	service := NewChatService(mockUseCase)
 
-	req := &proto.SendMessageRequest{
-		ChatId:   1,
-		Text:     "test msg",
-		SenderId: 1,
+	req := &proto_gen.SendMessageRequest{
+		Sender:    "user",
+		Text:      "test msg",
+		Timestamp: "2025-01-01T16:22:16Z",
 	}
 	resp, err := service.SendMessage(req)
 
@@ -73,12 +73,12 @@ func TestConnectChat(t *testing.T) {
 	}
 	service := NewChatService(mockUseCase)
 
-	req := &proto.ConnectChatRequest{
+	req := &proto_gen.ConnectChatRequest{
 		ChatId: 1,
 		UserId: 1,
 	}
-	ressp, err := service.ConnectToChat(req)
+	resp, err := service.ConnectToChat(req)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, ressp)
+	assert.NotNil(t, resp)
 }

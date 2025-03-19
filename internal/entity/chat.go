@@ -1,6 +1,9 @@
 package entity
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type TypeChat int
 
@@ -18,13 +21,13 @@ type Chat struct {
 	UpdateAt  time.Time
 }
 
-func (t TypeChat) StringType() string {
-	switch t {
-	case PrivateChat:
-		return "private chat"
-	case PublicChat:
-		return "public chat"
+func StringType(s string) (TypeChat, error) {
+	switch s {
+	case "private":
+		return PrivateChat, nil
+	case "public":
+		return PublicChat, nil
 	default:
-		return "unknown"
+		return 0, errors.New("invalid type chat")
 	}
 }

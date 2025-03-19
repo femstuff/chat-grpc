@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"chat-grpc/internal/entity"
@@ -12,7 +11,7 @@ import (
 type ChatUseCaseInterface interface {
 	Create(name string, users []int64, chatType entity.TypeChat) (int, error)
 	Delete(chatID int64) error
-	SendMessage(chatID int64, contentMsg string, sender int64) error
+	SendMessage(sender, text string, timestamp string) error
 	Connect(chatID, userID int64) error
 }
 
@@ -25,7 +24,6 @@ func NewChatUseCase(repo repository.ChatRepo) *ChatUseCase {
 }
 
 func (uc *ChatUseCase) Create(name string, users []int64, chatType entity.TypeChat) (int, error) {
-	log.Printf("uc layer\n")
 	chat := &entity.Chat{
 		Name:      name,
 		Users:     users,
@@ -40,10 +38,15 @@ func (uc *ChatUseCase) Delete(chatID int64) error {
 	return uc.repo.DeleteChat(chatID)
 }
 
-func (uc *ChatUseCase) SendMessage(chatID int64, contentMsg string, sender int64) error {
-	if chatID == 0 || len(contentMsg) == 0 || sender == 0 {
+func (uc *ChatUseCase) SendMessage(sender, text, timestamp string) error {
+	if sender == "" || text == "" || timestamp == "" {
 		return errors.New("invalid msg params")
 	}
+
+	//_, err := time.Parse(time.RFC3339, timestamp)
+	//if err != nil {
+	//	return errors.New("invalid with parsing time")
+	//}
 
 	return nil
 }
