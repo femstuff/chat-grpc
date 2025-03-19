@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -40,16 +41,17 @@ func (uc *ChatUseCase) Delete(chatID int64) error {
 }
 
 func (uc *ChatUseCase) SendMessage(chatID int64, contentMsg string, sender int64) error {
-	msg := &entity.Message{
-		ChatID:    chatID,
-		Sender:    sender,
-		Content:   contentMsg,
-		CreatedAt: time.Now().UTC(),
+	if chatID == 0 || len(contentMsg) == 0 || sender == 0 {
+		return errors.New("invalid msg params")
 	}
 
-	return uc.repo.SendMessage(msg)
+	return nil
 }
 
 func (uc *ChatUseCase) Connect(chatID, userID int64) error {
-	return uc.repo.ConnectChat(chatID, userID)
+	if chatID == 0 || userID == 0 {
+		return errors.New("invalid connect params")
+	}
+
+	return nil
 }
