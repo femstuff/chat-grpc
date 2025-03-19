@@ -1,6 +1,8 @@
 package repository
 
-import "chat-grpc/internal/entity"
+import (
+	"chat-grpc/Chat-service/internal/entity"
+)
 
 type ChatRepo interface {
 	CreateChat(chat *entity.Chat) (int, error)

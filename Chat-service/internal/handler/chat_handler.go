@@ -3,8 +3,8 @@ package handler
 import (
 	"errors"
 
-	"chat-grpc/internal/entity"
-	"chat-grpc/internal/usecase"
+	"chat-grpc/Chat-service/internal/entity"
+	"chat-grpc/Chat-service/internal/usecase"
 	"chat-grpc/proto_gen"
 )
 

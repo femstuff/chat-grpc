@@ -10,9 +10,10 @@ const (
 )
 
 type User struct {
-	ID        int
+	ID        int64
 	Name      string
 	Email     string
+	Password  string
 	Role      Role
 	CreatedAt time.Time
 	UpdatedAt time.Time

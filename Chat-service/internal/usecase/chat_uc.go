@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"chat-grpc/internal/entity"
-	"chat-grpc/internal/repository"
+	"chat-grpc/Chat-service/internal/entity"
+	"chat-grpc/Chat-service/internal/repository"
 )
 
 type ChatUseCaseInterface interface {
