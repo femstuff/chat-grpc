@@ -19,6 +19,7 @@ func (m *MockChatUseCase) Create(name string, users []int64, chatType entity.Typ
 }
 
 func (m *MockChatUseCase) Delete(chatID int64) error {
+	log.Print("mock layer del\n")
 	return m.DeleteFunc(chatID)
 }
 

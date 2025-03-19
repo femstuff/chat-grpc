@@ -1,4 +1,4 @@
-package service
+package handler
 
 import (
 	"errors"
@@ -27,6 +27,7 @@ func (cs *ChatService) CreateChat(req *proto.CreateChatRequest) (*proto.CreateCh
 }
 
 func (cs *ChatService) DeleteChat(req *proto.DeleteChatRequest) (*proto.DeleteChatResponse, error) {
+	log.Print("service layer del")
 	err := cs.useCase.Delete(req.ChatId)
 	if err != nil {
 		return nil, errors.New("fail with delete chat")
