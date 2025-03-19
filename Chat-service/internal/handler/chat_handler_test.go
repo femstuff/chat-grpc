@@ -3,8 +3,8 @@ package handler
 import (
 	"testing"
 
-	"chat-grpc/internal/entity"
-	"chat-grpc/internal/usecase/mocks"
+	"chat-grpc/Chat-service/internal/entity"
+	"chat-grpc/Chat-service/internal/usecase/mocks"
 	"chat-grpc/proto_gen"
 
 	"github.com/stretchr/testify/assert"

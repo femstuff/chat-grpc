@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"chat-grpc/internal/entity"
+	"chat-grpc/Chat-service/internal/entity"
 )
 
 type MockChatUseCase struct {
