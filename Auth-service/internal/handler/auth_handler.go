@@ -23,6 +23,7 @@ func (h *AuthHandler) Create(ctx context.Context, req *proto_gen.CreateUserReque
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("success create user with id: %v", id)
 
 	return &proto_gen.CreateUserResponse{Id: id}, nil
 }

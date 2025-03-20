@@ -47,7 +47,7 @@ func (a *AuthRepo) Login(username, pass string) (string, error) {
 
 func (a *AuthRepo) GetUser(id int64) (*entity.User, error) {
 	user, exists := a.users[id]
-	log.Print("repo layer\n")
+	log.Print("repo layer getUser\n")
 	if !exists {
 		return nil, errors.New("user not found")
 	}
@@ -82,4 +82,13 @@ func (a *AuthRepo) DeleteUser(id int64) error {
 
 	delete(a.users, id)
 	return nil
+}
+
+func (a *AuthRepo) GetUserByUsername(username string) (*entity.User, error) {
+	for _, user := range a.users {
+		if user.Name == username {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
 }

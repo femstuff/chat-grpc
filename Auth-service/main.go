@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"net"
+	"time"
 
+	"chat-grpc/Auth-service/internal"
 	"chat-grpc/Auth-service/internal/handler"
 	"chat-grpc/Auth-service/internal/repository"
 	"chat-grpc/Auth-service/internal/usecase"
@@ -18,7 +20,8 @@ func main() {
 	}
 
 	repo := repository.NewAuthRepository()
-	usecase := usecase.NewAuthService(repo)
+	jwt := internal.NewJWTService("key", 15*time.Minute)
+	usecase := usecase.NewAuthService(repo, jwt)
 	handler := handler.NewAuthHandler(usecase)
 
 	grpcServer := grpc.NewServer()

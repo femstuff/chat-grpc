@@ -5,16 +5,18 @@ import (
 	"log"
 	"time"
 
+	"chat-grpc/Auth-service/internal"
 	"chat-grpc/Auth-service/internal/entity"
 	"chat-grpc/Auth-service/internal/repository"
 )
 
 type AuthService struct {
-	repo *repository.AuthRepo
+	repo       *repository.AuthRepo
+	jwtService *internal.JWTService
 }
 
-func NewAuthService(repo *repository.AuthRepo) *AuthService {
-	return &AuthService{repo: repo}
+func NewAuthService(repo *repository.AuthRepo, jwtService *internal.JWTService) *AuthService {
+	return &AuthService{repo: repo, jwtService: jwtService}
 }
 
 func (s *AuthService) CreateUser(name, email, password string, role entity.Role) (int64, error) {
@@ -22,23 +24,45 @@ func (s *AuthService) CreateUser(name, email, password string, role entity.Role)
 }
 
 func (s *AuthService) Login(username, pass string) (string, error) {
-	return s.repo.Login(username, pass)
+	user, err := s.repo.GetUserByUsername(username)
+	if err != nil || user.Password != pass {
+		return "", errors.New("incorrect login or password")
+	}
+
+	refreshToken, err := s.jwtService.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		return "", err
+	}
+
+	return refreshToken, nil
 }
 
 func (s *AuthService) GetNewRefreshToken(oldToken string) (string, error) {
-	if oldToken == "refresh_token" {
-		return "new_refresh_token", nil
+	claims, err := s.jwtService.VerifyToken(oldToken)
+	if err != nil {
+		return "", errors.New("invalid refresh token")
 	}
 
-	return "", errors.New("invalid refresh token")
+	newRefreshToken, err := s.jwtService.GenerateToken(claims.UserID, entity.ParseRole(claims.Role))
+	if err != nil {
+		return "", err
+	}
+
+	return newRefreshToken, nil
 }
 
 func (s *AuthService) GetNewAccessToken(refreshToken string) (string, error) {
-	if refreshToken == "new_refresh_token" {
-		return "access_token", nil
+	claims, err := s.jwtService.VerifyToken(refreshToken)
+	if err != nil {
+		return "", errors.New("invalid refresh token")
 	}
 
-	return "", errors.New("invalid access token")
+	accessToken, err := s.jwtService.GenerateToken(claims.UserID, entity.ParseRole(claims.Role))
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken, nil
 }
 
 func (s *AuthService) GetUser(id int64) (*entity.User, error) {
