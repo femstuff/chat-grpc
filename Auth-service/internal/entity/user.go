@@ -29,3 +29,14 @@ func (r Role) StringRole() string {
 		return "unknown role"
 	}
 }
+
+func ParseRole(roleStr string) Role {
+	switch roleStr {
+	case "admin":
+		return AdminRole
+	case "user":
+		return UserRole
+	default:
+		return UserRole
+	}
+}
