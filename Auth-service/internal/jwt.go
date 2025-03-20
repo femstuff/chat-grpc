@@ -37,7 +37,7 @@ func (j *JWTService) GenerateToken(userID int64, role entity.Role) (string, erro
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(j.Key)
+	return token.SignedString([]byte(j.Key))
 }
 
 func (j *JWTService) VerifyToken(tokenStr string) (*Claims, error) {
