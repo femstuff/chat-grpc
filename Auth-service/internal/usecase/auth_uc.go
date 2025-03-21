@@ -20,6 +20,10 @@ func NewAuthService(repo *repository.AuthRepo, jwtService *internal.JWTService) 
 }
 
 func (s *AuthService) CreateUser(name, email, password string, role entity.Role) (int64, error) {
+	if err := internal.Validate(name, email, password); err != nil {
+		return 0, err
+	}
+
 	return s.repo.CreateUser(name, email, password, role)
 }
 
@@ -78,6 +82,9 @@ func (s *AuthService) UpdateUser(id int64, name, email string) error {
 	user, err := s.repo.GetUser(id)
 	if err != nil {
 		return err
+	}
+	if name == "" || email == "" {
+		return errors.New("field name and/or email cannot be empty")
 	}
 
 	user.Name = name
