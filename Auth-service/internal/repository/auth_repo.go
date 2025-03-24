@@ -99,7 +99,7 @@ func (a *AuthRepo) GetList() ([]*entity.User, error) {
 }
 
 func (a *AuthRepo) UpdateUser(id int64, name, email string) error {
-	query := `UPDATE users SET name = $1, email = $2 WHERE id = $3`
+	query := `UPDATE users SET name = $1, email = $2, updated_at = NOW() WHERE id = $3`
 	_, err := a.db.Exec(query, name, email, id)
 	if err != nil {
 		return err
