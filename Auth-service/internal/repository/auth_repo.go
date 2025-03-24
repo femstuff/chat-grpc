@@ -3,18 +3,19 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"chat-grpc/Auth-service/internal/entity"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthRepo struct {
-	db *sql.DB
+	db  *sql.DB
+	log *zap.Logger
 }
 
-func NewAuthRepository(db *sql.DB) *AuthRepo {
-	return &AuthRepo{db: db}
+func NewAuthRepository(db *sql.DB, log *zap.Logger) *AuthRepo {
+	return &AuthRepo{db: db, log: log}
 }
 
 func hashPassword(password string) (string, error) {
@@ -27,8 +28,11 @@ func hashPassword(password string) (string, error) {
 }
 
 func (a *AuthRepo) CreateUser(name, email, password string, role entity.Role) (int64, error) {
+	a.log.Info("Creating user", zap.String("name", name), zap.String("email", email), zap.String("role", role.StringRole()))
+
 	hashPass, err := hashPassword(password)
 	if err != nil {
+		a.log.Error("Failed to hash password", zap.Error(err))
 		return 0, err
 	}
 
@@ -37,9 +41,11 @@ func (a *AuthRepo) CreateUser(name, email, password string, role entity.Role) (i
 
 	err = a.db.QueryRow(query, name, email, hashPass, role.StringRole()).Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка при создании пользователя: %w", err)
+		a.log.Error("Failed to insert new user in db", zap.Error(err))
+		return 0, err
 	}
 
+	a.log.Info("Successful create user", zap.Int64("userid:", id))
 	return id, nil
 }
 

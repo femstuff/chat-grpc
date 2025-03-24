@@ -2,21 +2,22 @@ package handler
 
 import (
 	"context"
-	"log"
 
 	"chat-grpc/Auth-service/internal/entity"
 	"chat-grpc/Auth-service/internal/usecase"
 	"chat-grpc/proto_gen"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthHandler struct {
 	proto_gen.UnimplementedAuthServiceServer
 	usecase *usecase.AuthService
+	log     *zap.Logger
 }
 
-func NewAuthHandler(uc *usecase.AuthService) *AuthHandler {
-	return &AuthHandler{usecase: uc}
+func NewAuthHandler(uc *usecase.AuthService, log *zap.Logger) *AuthHandler {
+	return &AuthHandler{usecase: uc, log: log}
 }
 
 func (h *AuthHandler) Create(ctx context.Context, req *proto_gen.CreateUserRequest) (*proto_gen.CreateUserResponse, error) {
@@ -24,7 +25,6 @@ func (h *AuthHandler) Create(ctx context.Context, req *proto_gen.CreateUserReque
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("success create user with id: %v", id)
 
 	return &proto_gen.CreateUserResponse{Id: id}, nil
 }
@@ -72,7 +72,6 @@ func (h *AuthHandler) Get(ctx context.Context, req *proto_gen.GetUserRequest) (*
 }
 
 func (h *AuthHandler) GetList(ctx context.Context, req *proto_gen.AuthEmpty) (*proto_gen.GetListResponse, error) {
-	log.Print("handler layer\n")
 	users, err := h.usecase.GetUsers()
 	if err != nil {
 		return nil, err
