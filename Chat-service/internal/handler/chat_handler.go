@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"time"
 
 	"chat-grpc/Chat-service/internal/entity"
 	"chat-grpc/Chat-service/internal/usecase"
@@ -38,7 +39,9 @@ func (cs *ChatService) DeleteChat(req *proto_gen.DeleteChatRequest) (*proto_gen.
 }
 
 func (cs *ChatService) SendMessage(req *proto_gen.SendMessageRequest) (*proto_gen.ChatEmpty, error) {
-	err := cs.useCase.SendMessage(req.Sender, req.Text, req.Timestamp)
+	createdAtStr := req.CreatedAt.AsTime().Format(time.RFC3339)
+
+	err := cs.useCase.SendMessage(req.Sender, req.Text, createdAtStr)
 	if err != nil {
 		return nil, errors.New("fail with send message")
 	}

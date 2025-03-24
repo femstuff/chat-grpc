@@ -7,6 +7,7 @@ import (
 	"chat-grpc/Auth-service/internal/entity"
 	"chat-grpc/Auth-service/internal/usecase"
 	"chat-grpc/proto_gen"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthHandler struct {
@@ -65,8 +66,8 @@ func (h *AuthHandler) Get(ctx context.Context, req *proto_gen.GetUserRequest) (*
 		Name:      user.Name,
 		Email:     user.Email,
 		Role:      proto_gen.Role(user.Role),
-		CreatedAt: &proto_gen.Timestamp{Seconds: user.CreatedAt.Unix()},
-		UpdatedAt: &proto_gen.Timestamp{Seconds: user.UpdatedAt.Unix()},
+		CreatedAt: timestamppb.New(user.CreatedAt),
+		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}, nil
 }
 
@@ -84,8 +85,8 @@ func (h *AuthHandler) GetList(ctx context.Context, req *proto_gen.AuthEmpty) (*p
 			Name:      user.Name,
 			Email:     user.Email,
 			Role:      proto_gen.Role(user.Role),
-			CreatedAt: &proto_gen.Timestamp{Seconds: user.CreatedAt.Unix()},
-			UpdatedAt: &proto_gen.Timestamp{Seconds: user.UpdatedAt.Unix()},
+			CreatedAt: timestamppb.New(user.CreatedAt),
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		})
 	}
 

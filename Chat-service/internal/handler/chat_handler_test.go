@@ -6,7 +6,6 @@ import (
 	"chat-grpc/Chat-service/internal/entity"
 	"chat-grpc/Chat-service/internal/usecase/mocks"
 	"chat-grpc/proto_gen"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,9 +54,8 @@ func TestSendMessage(t *testing.T) {
 	service := NewChatService(mockUseCase)
 
 	req := &proto_gen.SendMessageRequest{
-		Sender:    "user",
-		Text:      "test msg",
-		Timestamp: "2025-01-01T16:22:16Z",
+		Sender: "user",
+		Text:   "test msg",
 	}
 	resp, err := service.SendMessage(req)
 
