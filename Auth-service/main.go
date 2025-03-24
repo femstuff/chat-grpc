@@ -5,11 +5,12 @@ import (
 	"net"
 	"time"
 
-	"chat-grpc/Auth-service/internal"
 	"chat-grpc/Auth-service/internal/handler"
 	"chat-grpc/Auth-service/internal/repository"
 	"chat-grpc/Auth-service/internal/usecase"
+	"chat-grpc/Auth-service/pkg/jwt"
 	"chat-grpc/proto_gen"
+	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 )
 
@@ -19,8 +20,13 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	repo := repository.NewAuthRepository()
-	jwt := internal.NewJWTService("key", 15*time.Minute)
+	db, err := repository.NewDb()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	repo := repository.NewAuthRepository(db)
+	jwt := jwt.NewJWTService("key", 15*time.Minute)
 	usecase := usecase.NewAuthService(repo, jwt)
 	handler := handler.NewAuthHandler(usecase)
 

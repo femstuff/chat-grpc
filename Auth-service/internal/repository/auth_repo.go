@@ -1,94 +1,134 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
-	"log"
-	"time"
+	"fmt"
 
 	"chat-grpc/Auth-service/internal/entity"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthRepo struct {
-	users map[int64]*entity.User
-	ID    int64
+	db *sql.DB
 }
 
-func NewAuthRepository() *AuthRepo {
-	return &AuthRepo{
-		users: make(map[int64]*entity.User),
-		ID:    1,
+func NewAuthRepository(db *sql.DB) *AuthRepo {
+	return &AuthRepo{db: db}
+}
+
+func hashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
 	}
+
+	return string(hash), nil
 }
 
 func (a *AuthRepo) CreateUser(name, email, password string, role entity.Role) (int64, error) {
-	id := a.ID
-	a.users[id] = &entity.User{
-		ID:        id,
-		Name:      name,
-		Email:     email,
-		Password:  password,
-		Role:      role,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+	hashPass, err := hashPassword(password)
+	if err != nil {
+		return 0, err
+	}
+
+	var id int64
+	query := `INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id`
+
+	err = a.db.QueryRow(query, name, email, hashPass, role.StringRole()).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка при создании пользователя: %w", err)
 	}
 
 	return id, nil
 }
 
 func (a *AuthRepo) Login(username, pass string) (string, error) {
-	for _, user := range a.users {
-		if username == user.Name && pass == user.Password {
-			return "refresh_token", nil
-		}
+	var hashPassword string
+	query := `SELECT password_hash FROM users WHERE email = $1`
+	err := a.db.QueryRow(query, username).Scan(&hashPassword)
+	if err != nil {
+		return "", err
 	}
 
-	return "", errors.New("incorrect login or password")
+	if err := bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(pass)); err != nil {
+		return "", errors.New("incorrect login or password")
+	}
+
+	return "refresh_token", nil
 }
 
 func (a *AuthRepo) GetUser(id int64) (*entity.User, error) {
-	user, exists := a.users[id]
-	log.Print("repo layer getUser\n")
-	if !exists {
-		return nil, errors.New("user not found")
+	var user entity.User
+	var roleStr string
+
+	query := `SELECT id, name, email, password_hash, role, created_at, updated_at FROM users WHERE id = $1`
+	err := a.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &roleStr, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, err
 	}
 
-	return user, nil
+	user.Role = entity.ParseRole(roleStr)
+
+	return &user, nil
 }
 
 func (a *AuthRepo) GetList() ([]*entity.User, error) {
+	query := `SELECT id, name, email, role, created_at, updated_at FROM users`
+	rows, err := a.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	var users []*entity.User
-	for _, user := range a.users {
+	var roleStr string
+
+	for rows.Next() {
+		user := &entity.User{}
+		err := rows.Scan(&user.ID, &user.Name, &user.Email, &roleStr, &user.CreatedAt, &user.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+
 		users = append(users, user)
+		user.Role = entity.ParseRole(roleStr)
 	}
 
 	return users, nil
 }
 
-func (a *AuthRepo) UpdateUser(user *entity.User) error {
-	_, exists := a.users[user.ID]
-	if !exists {
-		return errors.New("user not found")
+func (a *AuthRepo) UpdateUser(id int64, name, email string) error {
+	query := `UPDATE users SET name = $1, email = $2 WHERE id = $3`
+	_, err := a.db.Exec(query, name, email, id)
+	if err != nil {
+		return err
 	}
 
-	a.users[user.ID] = user
 	return nil
 }
 
 func (a *AuthRepo) DeleteUser(id int64) error {
-	_, exists := a.users[id]
-	if !exists {
-		return errors.New("user not found")
+	query := `DELETE FROM users WHERE id = $1`
+	_, err := a.db.Exec(query, id)
+	if err != nil {
+		return err
 	}
 
-	delete(a.users, id)
 	return nil
 }
 
 func (a *AuthRepo) GetUserByUsername(username string) (*entity.User, error) {
-	for _, user := range a.users {
-		if user.Name == username {
-			return user, nil
-		}
+	var user entity.User
+	var roleStr string
+
+	query := `SELECT id, name, email, role, created_at, updated_at FROM users WHERE name = $1`
+	err := a.db.QueryRow(query, username).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &roleStr, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("user not found")
+
+	user.Role = entity.ParseRole(roleStr)
+
+	return &user, nil
 }
