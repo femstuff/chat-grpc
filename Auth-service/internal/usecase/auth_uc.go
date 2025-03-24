@@ -3,19 +3,19 @@ package usecase
 import (
 	"errors"
 	"log"
-	"time"
 
 	"chat-grpc/Auth-service/internal"
 	"chat-grpc/Auth-service/internal/entity"
 	"chat-grpc/Auth-service/internal/repository"
+	"chat-grpc/Auth-service/pkg/jwt"
 )
 
 type AuthService struct {
 	repo       *repository.AuthRepo
-	jwtService *internal.JWTService
+	jwtService *jwt.JWTService
 }
 
-func NewAuthService(repo *repository.AuthRepo, jwtService *internal.JWTService) *AuthService {
+func NewAuthService(repo *repository.AuthRepo, jwtService *jwt.JWTService) *AuthService {
 	return &AuthService{repo: repo, jwtService: jwtService}
 }
 
@@ -79,19 +79,11 @@ func (s *AuthService) GetUsers() ([]*entity.User, error) {
 }
 
 func (s *AuthService) UpdateUser(id int64, name, email string) error {
-	user, err := s.repo.GetUser(id)
-	if err != nil {
-		return err
-	}
 	if name == "" || email == "" {
 		return errors.New("field name and/or email cannot be empty")
 	}
 
-	user.Name = name
-	user.Email = email
-	user.UpdatedAt = time.Now().UTC()
-
-	return s.repo.UpdateUser(user)
+	return s.repo.UpdateUser(id, name, email)
 }
 
 func (s *AuthService) DeleteUser(id int64) error {
