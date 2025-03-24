@@ -4,6 +4,8 @@ package chat;
 
 option go_package = "/proto_gen";
 
+import "google/protobuf/timestamp.proto";
+
 service ChatService {
   rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
   rpc DeleteChat(DeleteChatRequest) returns (ChatEmpty);
@@ -30,13 +32,13 @@ message DeleteChatRequest {
 message SendMessageRequest {
   string sender = 1;
   string text = 2;
-  string timestamp = 3;
+  google.protobuf.Timestamp created_at = 3;
 }
 
 message Message {
   string sender = 1;
   string text = 2;
-  string timestamp = 3;
+  google.protobuf.Timestamp created_at = 3;
 }
 
 message ConnectChatRequest {

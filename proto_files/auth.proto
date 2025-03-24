@@ -4,6 +4,8 @@ package auth;
 
 option go_package = "/proto_gen";
 
+import "google/protobuf/timestamp.proto";
+
 service AuthService {
   rpc Create(CreateUserRequest) returns (CreateUserResponse);
   rpc Get(GetUserRequest) returns (GetUserResponse);
@@ -17,11 +19,6 @@ service AuthService {
 }
 
 message AuthEmpty {}
-
-message Timestamp {
-  int64 seconds = 1;
-  int32 nanos = 2;
-}
 
 message CreateUserRequest {
   string name = 1;
@@ -43,8 +40,8 @@ message GetUserResponse {
   string name = 2;
   string email = 3;
   Role role = 4;
-  Timestamp created_at = 5;
-  Timestamp updated_at = 6;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 message GetListResponse {
