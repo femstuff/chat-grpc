@@ -2,21 +2,22 @@ package usecase
 
 import (
 	"errors"
-	"log"
 
 	"chat-grpc/Auth-service/internal"
 	"chat-grpc/Auth-service/internal/entity"
 	"chat-grpc/Auth-service/internal/repository"
 	"chat-grpc/Auth-service/pkg/jwt"
+	"go.uber.org/zap"
 )
 
 type AuthService struct {
 	repo       *repository.AuthRepo
 	jwtService *jwt.JWTService
+	log        *zap.Logger
 }
 
-func NewAuthService(repo *repository.AuthRepo, jwtService *jwt.JWTService) *AuthService {
-	return &AuthService{repo: repo, jwtService: jwtService}
+func NewAuthService(repo *repository.AuthRepo, jwtService *jwt.JWTService, log *zap.Logger) *AuthService {
+	return &AuthService{repo: repo, jwtService: jwtService, log: log}
 }
 
 func (s *AuthService) CreateUser(name, email, password string, role entity.Role) (int64, error) {
@@ -74,7 +75,6 @@ func (s *AuthService) GetUser(id int64) (*entity.User, error) {
 }
 
 func (s *AuthService) GetUsers() ([]*entity.User, error) {
-	log.Print("uc layer\n")
 	return s.repo.GetList()
 }
 
