@@ -8,6 +8,7 @@ import (
 	"chat-grpc/Auth-service/internal/repository"
 	"chat-grpc/Auth-service/pkg/jwt"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -30,15 +31,23 @@ func (s *AuthService) CreateUser(name, email, password string, role entity.Role)
 
 func (s *AuthService) Login(username, pass string) (string, error) {
 	user, err := s.repo.GetUserByUsername(username)
-	if err != nil || user.Password != pass {
+	if err != nil {
+		s.log.Error("Failed to get user by username", zap.Error(err))
+		return "", errors.New("incorrect login or password")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
+		s.log.Warn("Incorrect password attempt", zap.String("username", username))
 		return "", errors.New("incorrect login or password")
 	}
 
 	refreshToken, err := s.jwtService.GenerateToken(user.ID, user.Role)
 	if err != nil {
+		s.log.Error("Failed to generate token", zap.Error(err))
 		return "", err
 	}
 
+	s.log.Info("User logged in successfully", zap.String("username", username))
 	return refreshToken, nil
 }
 
