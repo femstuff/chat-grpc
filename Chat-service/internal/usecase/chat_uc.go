@@ -42,12 +42,7 @@ func (uc *ChatUseCase) SendMessage(sender, text, timestamp string) error {
 	if sender == "" || text == "" || timestamp == "" {
 		return errors.New("invalid msg params")
 	}
-
-	//_, err := time.Parse(time.RFC3339, timestamp)
-	//if err != nil {
-	//	return errors.New("invalid with parsing time")
-	//}
-
+	
 	return nil
 }
 
