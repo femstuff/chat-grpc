@@ -7,14 +7,16 @@ import (
 	"chat-grpc/Chat-service/internal/entity"
 	"chat-grpc/Chat-service/internal/usecase"
 	"chat-grpc/proto_gen"
+	"go.uber.org/zap"
 )
 
 type ChatService struct {
 	useCase usecase.ChatUseCaseInterface
+	log     *zap.Logger
 }
 
-func NewChatService(useCase usecase.ChatUseCaseInterface) *ChatService {
-	return &ChatService{useCase: useCase}
+func NewChatService(useCase usecase.ChatUseCaseInterface, log *zap.Logger) *ChatService {
+	return &ChatService{useCase: useCase, log: log}
 }
 
 func (cs *ChatService) CreateChat(req *proto_gen.CreateChatRequest) (*proto_gen.CreateChatResponse, error) {
