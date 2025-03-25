@@ -27,7 +27,7 @@ func main() {
 		log.Fatal("Failed to serve gRPC server", zap.Error(err))
 	}
 
-	db, err := repository.NewDb()
+	db, err := repository.NewDb(log)
 	if err != nil {
 		log.Fatal("Database conn failed", zap.Error(err))
 	}
