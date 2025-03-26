@@ -7,8 +7,9 @@ import (
 	"chat-grpc/Auth-service/internal/handler"
 	"chat-grpc/Auth-service/internal/repository"
 	"chat-grpc/Auth-service/internal/usecase"
-	"chat-grpc/Auth-service/pkg/jwt"
-	"chat-grpc/Auth-service/pkg/logger"
+	"chat-grpc/Auth-service/jwt"
+	"chat-grpc/pkg"
+	"chat-grpc/pkg/logger"
 	"chat-grpc/proto_gen"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -27,7 +28,7 @@ func main() {
 		log.Fatal("Failed to serve gRPC server", zap.Error(err))
 	}
 
-	db, err := repository.NewDb(log)
+	db, err := pkg.NewDb(log)
 	if err != nil {
 		log.Fatal("Database conn failed", zap.Error(err))
 	}
