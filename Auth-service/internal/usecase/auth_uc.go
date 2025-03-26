@@ -6,7 +6,7 @@ import (
 	"chat-grpc/Auth-service/internal"
 	"chat-grpc/Auth-service/internal/entity"
 	"chat-grpc/Auth-service/internal/repository"
-	"chat-grpc/Auth-service/pkg/jwt"
+	"chat-grpc/Auth-service/jwt"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
