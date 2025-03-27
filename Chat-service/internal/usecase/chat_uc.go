@@ -4,52 +4,45 @@ import (
 	"errors"
 	"time"
 
-	"chat-grpc/Chat-service/internal/entity"
 	"chat-grpc/Chat-service/internal/repository"
+	"go.uber.org/zap"
 )
 
 type ChatUseCaseInterface interface {
-	Create(name string, users []int64, chatType entity.TypeChat) (int, error)
+	Create(usernames []string) (int64, error)
 	Delete(chatID int64) error
-	SendMessage(sender, text string, timestamp string) error
-	Connect(chatID, userID int64) error
+	SendMessage(from, text string, timestamp time.Time) error
 }
 
 type ChatUseCase struct {
 	repo repository.ChatRepo
+	log  *zap.Logger
 }
 
-func NewChatUseCase(repo repository.ChatRepo) *ChatUseCase {
-	return &ChatUseCase{repo: repo}
+func NewChatUseCase(repo repository.ChatRepo, log *zap.Logger) *ChatUseCase {
+	return &ChatUseCase{repo: repo, log: log}
 }
 
-func (uc *ChatUseCase) Create(name string, users []int64, chatType entity.TypeChat) (int, error) {
-	chat := &entity.Chat{
-		Name:      name,
-		Users:     users,
-		Type:      chatType,
-		CreatedAt: time.Now().UTC(),
+func (uc *ChatUseCase) Create(usernames []string) (int64, error) {
+	if len(usernames) == 0 {
+		return 0, errors.New("usernames list is empty")
 	}
 
-	return uc.repo.CreateChat(chat)
+	return uc.repo.CreateChat(usernames)
 }
 
 func (uc *ChatUseCase) Delete(chatID int64) error {
+	if chatID == 0 {
+		return errors.New("invalid chat ID")
+	}
+
 	return uc.repo.DeleteChat(chatID)
 }
 
-func (uc *ChatUseCase) SendMessage(sender, text, timestamp string) error {
-	if sender == "" || text == "" || timestamp == "" {
-		return errors.New("invalid msg params")
-	}
-	
-	return nil
-}
-
-func (uc *ChatUseCase) Connect(chatID, userID int64) error {
-	if chatID == 0 || userID == 0 {
-		return errors.New("invalid connect params")
+func (uc *ChatUseCase) SendMessage(from, text string, timestamp time.Time) error {
+	if from == "" || text == "" {
+		return errors.New("invalid message parameters")
 	}
 
-	return nil
+	return uc.repo.SendMessage(from, text, timestamp)
 }

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"chat-grpc/Auth-service/pkg/jwt"
+	"chat-grpc/Auth-service/jwt"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
