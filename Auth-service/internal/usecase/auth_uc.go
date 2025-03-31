@@ -18,7 +18,11 @@ type AuthService struct {
 }
 
 func NewAuthService(repo *repository.AuthRepo, jwtService *jwt.JWTService, log *zap.Logger) *AuthService {
-	return &AuthService{repo: repo, jwtService: jwtService, log: log}
+	return &AuthService{
+		repo:       repo,
+		jwtService: jwtService,
+		log:        log,
+	}
 }
 
 func (s *AuthService) CreateUser(name, email, password string, role entity.Role) (int64, error) {
@@ -26,13 +30,32 @@ func (s *AuthService) CreateUser(name, email, password string, role entity.Role)
 		return 0, err
 	}
 
-	return s.repo.CreateUser(name, email, password, role)
+	existingUser, _ := s.repo.GetUserByUsername(name)
+	if existingUser != nil {
+		s.log.Warn("Attempt to create an already existing user", zap.String("name", name))
+		return 0, errors.New("user with this name already exists")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		s.log.Error("Failed to hash password", zap.Error(err))
+		return 0, errors.New("failed to secure password")
+	}
+
+	userID, err := s.repo.CreateUser(name, email, string(hashedPassword), role)
+	if err != nil {
+		s.log.Error("Failed to create user", zap.Error(err))
+		return 0, err
+	}
+
+	s.log.Info("User created successfully", zap.Int64("userID", userID), zap.String("email", email))
+	return userID, nil
 }
 
 func (s *AuthService) Login(username, pass string) (string, error) {
 	user, err := s.repo.GetUserByUsername(username)
 	if err != nil {
-		s.log.Error("Failed to get user by username", zap.Error(err))
+		s.log.Warn("User not found", zap.String("username", username), zap.Error(err))
 		return "", errors.New("incorrect login or password")
 	}
 
@@ -41,50 +64,68 @@ func (s *AuthService) Login(username, pass string) (string, error) {
 		return "", errors.New("incorrect login or password")
 	}
 
-	refreshToken, err := s.jwtService.GenerateToken(user.ID, user.Role)
+	refreshToken, err := s.jwtService.GenerateRefreshToken(user.ID, user.Role)
 	if err != nil {
-		s.log.Error("Failed to generate token", zap.Error(err))
+		s.log.Error("Failed to generate refresh token", zap.Error(err))
 		return "", err
 	}
 
-	s.log.Info("User logged in successfully", zap.String("username", username))
+	s.log.Info("User logged in", zap.String("username", username))
 	return refreshToken, nil
-}
-
-func (s *AuthService) GetNewRefreshToken(oldToken string) (string, error) {
-	claims, err := s.jwtService.VerifyToken(oldToken)
-	if err != nil {
-		return "", errors.New("invalid refresh token")
-	}
-
-	newRefreshToken, err := s.jwtService.GenerateToken(claims.UserID, entity.ParseRole(claims.Role))
-	if err != nil {
-		return "", err
-	}
-
-	return newRefreshToken, nil
 }
 
 func (s *AuthService) GetNewAccessToken(refreshToken string) (string, error) {
 	claims, err := s.jwtService.VerifyToken(refreshToken)
 	if err != nil {
+		s.log.Warn("Invalid refresh token", zap.Error(err))
 		return "", errors.New("invalid refresh token")
 	}
 
-	accessToken, err := s.jwtService.GenerateToken(claims.UserID, entity.ParseRole(claims.Role))
+	accessToken, err := s.jwtService.GenerateAccessToken(claims.UserID, entity.ParseRole(claims.Role))
 	if err != nil {
+		s.log.Error("Failed to generate access token", zap.Error(err))
 		return "", err
 	}
 
+	s.log.Info("Access token refreshed", zap.Int64("userID", claims.UserID))
 	return accessToken, nil
 }
 
+func (s *AuthService) GetNewRefreshToken(oldToken string) (string, error) {
+	claims, err := s.jwtService.VerifyToken(oldToken)
+	if err != nil {
+		s.log.Warn("Invalid refresh token", zap.Error(err))
+		return "", errors.New("invalid refresh token")
+	}
+
+	newRefreshToken, err := s.jwtService.GenerateRefreshToken(claims.UserID, entity.ParseRole(claims.Role))
+	if err != nil {
+		s.log.Error("Failed to generate refresh token", zap.Error(err))
+		return "", err
+	}
+
+	s.log.Info("Refresh token updated", zap.Int64("userID", claims.UserID))
+	return newRefreshToken, nil
+}
+
 func (s *AuthService) GetUser(id int64) (*entity.User, error) {
-	return s.repo.GetUser(id)
+	user, err := s.repo.GetUser(id)
+	if err != nil {
+		s.log.Warn("User not found", zap.Int64("userID", id))
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (s *AuthService) GetUsers() ([]*entity.User, error) {
-	return s.repo.GetList()
+	users, err := s.repo.GetList()
+	if err != nil {
+		s.log.Error("Failed to retrieve users", zap.Error(err))
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (s *AuthService) UpdateUser(id int64, name, email string) error {
@@ -92,17 +133,38 @@ func (s *AuthService) UpdateUser(id int64, name, email string) error {
 		return errors.New("field name and/or email cannot be empty")
 	}
 
-	return s.repo.UpdateUser(id, name, email)
+	err := s.repo.UpdateUser(id, name, email)
+	if err != nil {
+		s.log.Error("Failed to update user", zap.Int64("userID", id), zap.Error(err))
+		return err
+	}
+
+	s.log.Info("User updated successfully", zap.Int64("userID", id))
+	return nil
 }
 
 func (s *AuthService) DeleteUser(id int64) error {
-	return s.repo.DeleteUser(id)
-}
-
-func (s *AuthService) CheckToken(endpoint string) error {
-	if endpoint == "" {
-		return errors.New("empty endpoint")
+	err := s.repo.DeleteUser(id)
+	if err != nil {
+		s.log.Error("Failed to delete user", zap.Int64("userID", id), zap.Error(err))
+		return err
 	}
 
+	s.log.Info("User deleted successfully", zap.Int64("userID", id))
+	return nil
+}
+
+func (s *AuthService) CheckToken(accessToken string) error {
+	if accessToken == "" {
+		return errors.New("empty token")
+	}
+
+	_, err := s.jwtService.VerifyToken(accessToken)
+	if err != nil {
+		s.log.Warn("Invalid access token", zap.Error(err))
+		return errors.New("invalid token")
+	}
+
+	s.log.Info("Access token is valid")
 	return nil
 }
