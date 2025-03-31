@@ -37,8 +37,7 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 	CREATE TABLE IF NOT EXISTS refresh_tokens (
 		user_id BIGINT PRIMARY KEY,
 		token TEXT NOT NULL
-	);
-`
+	);`
 
 	_, err = db.Exec(query)
 	if err != nil {

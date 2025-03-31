@@ -55,7 +55,7 @@ func (s *AuthService) CreateUser(name, email, password string, role entity.Role)
 func (s *AuthService) Login(username, pass string) (string, error) {
 	user, err := s.repo.GetUserByUsername(username)
 	if err != nil {
-		s.log.Warn("User not found", zap.String("username", username), zap.Error(err))
+		s.log.Error("Failed to get user by username", zap.Error(err))
 		return "", errors.New("incorrect login or password")
 	}
 
@@ -70,15 +70,24 @@ func (s *AuthService) Login(username, pass string) (string, error) {
 		return "", err
 	}
 
-	s.log.Info("User logged in", zap.String("username", username))
+	if err := s.repo.SaveRefreshToken(user.ID, refreshToken); err != nil {
+		s.log.Error("Failed to save refresh token", zap.Error(err))
+		return "", err
+	}
+
+	s.log.Info("User logged in successfully", zap.String("username", username))
 	return refreshToken, nil
 }
 
 func (s *AuthService) GetNewAccessToken(refreshToken string) (string, error) {
-	claims, err := s.jwtService.VerifyToken(refreshToken)
+	claims, err := s.jwtService.VerifyRefreshToken(refreshToken)
 	if err != nil {
 		s.log.Warn("Invalid refresh token", zap.Error(err))
 		return "", errors.New("invalid refresh token")
+	}
+
+	if err := s.repo.CheckRefreshToken(claims.UserID, refreshToken); err != nil {
+		return "", err
 	}
 
 	accessToken, err := s.jwtService.GenerateAccessToken(claims.UserID, entity.ParseRole(claims.Role))
@@ -92,15 +101,28 @@ func (s *AuthService) GetNewAccessToken(refreshToken string) (string, error) {
 }
 
 func (s *AuthService) GetNewRefreshToken(oldToken string) (string, error) {
-	claims, err := s.jwtService.VerifyToken(oldToken)
+	claims, err := s.jwtService.VerifyRefreshToken(oldToken)
 	if err != nil {
 		s.log.Warn("Invalid refresh token", zap.Error(err))
 		return "", errors.New("invalid refresh token")
 	}
 
+	if err := s.repo.CheckRefreshToken(claims.UserID, oldToken); err != nil {
+		return "", err
+	}
+
+	if err := s.repo.DeleteRefreshToken(claims.UserID); err != nil {
+		return "", err
+	}
+
 	newRefreshToken, err := s.jwtService.GenerateRefreshToken(claims.UserID, entity.ParseRole(claims.Role))
 	if err != nil {
 		s.log.Error("Failed to generate refresh token", zap.Error(err))
+		return "", err
+	}
+
+	if err := s.repo.SaveRefreshToken(claims.UserID, newRefreshToken); err != nil {
+		s.log.Error("Failed to save new refresh token", zap.Error(err))
 		return "", err
 	}
 
@@ -159,7 +181,7 @@ func (s *AuthService) CheckToken(accessToken string) error {
 		return errors.New("empty token")
 	}
 
-	_, err := s.jwtService.VerifyToken(accessToken)
+	_, err := s.jwtService.VerifyAccessToken(accessToken)
 	if err != nil {
 		s.log.Warn("Invalid access token", zap.Error(err))
 		return errors.New("invalid token")
