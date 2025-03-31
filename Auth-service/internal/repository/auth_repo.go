@@ -38,6 +38,8 @@ func (a *AuthRepo) SaveRefreshToken(userID int64, token string) error {
 	if err != nil {
 		a.log.Error("Failed to save refresh token", zap.Error(err))
 	}
+
+	a.log.Info("Success save refresh token")
 	return err
 }
 
@@ -198,4 +200,33 @@ func (a *AuthRepo) GetUserByRefreshToken(refreshToken string) (int64, error) {
 	}
 
 	return userID, nil
+}
+
+func (a *AuthRepo) CheckRefreshToken(userID int64, token string) error {
+	hashedToken := hashToken(token)
+
+	var dbToken string
+	err := a.db.QueryRow(`SELECT token FROM refresh_tokens WHERE user_id = $1`, userID).Scan(&dbToken)
+	if err != nil {
+		a.log.Warn("Refresh token not found", zap.Error(err))
+		return errors.New("invalid refresh token")
+	}
+
+	if hashedToken != dbToken {
+		a.log.Warn("Refresh token mismatch")
+		return errors.New("invalid refresh token")
+	}
+
+	return nil
+}
+
+func (a *AuthRepo) DeleteRefreshToken(userID int64) error {
+	_, err := a.db.Exec(`DELETE FROM refresh_tokens WHERE user_id = $1`, userID)
+	if err != nil {
+		a.log.Error("Failed to delete refresh token", zap.Error(err))
+		return err
+	}
+
+	a.log.Info("Refresh token deleted", zap.Int64("userID", userID))
+	return nil
 }

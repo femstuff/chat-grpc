@@ -1,8 +1,6 @@
 package jwt
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"time"
 
@@ -56,15 +54,7 @@ func (j *JWTService) GenerateRefreshToken(userID int64, role entity.Role) (strin
 	return token.SignedString([]byte(j.Key))
 }
 
-func GenerateRefreshToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
-
-func (j *JWTService) VerifyToken(tokenStr string) (*Claims, error) {
+func (j *JWTService) VerifyAccessToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(j.Key), nil
 	})
@@ -75,6 +65,23 @@ func (j *JWTService) VerifyToken(tokenStr string) (*Claims, error) {
 	claims, ok := token.Claims.(*Claims)
 	if !ok {
 		return nil, errors.New("incorrect token")
+	}
+
+	return claims, nil
+}
+
+func (j *JWTService) VerifyRefreshToken(tokenStr string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(j.Key), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid refresh token")
 	}
 
 	return claims, nil
