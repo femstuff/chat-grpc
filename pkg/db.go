@@ -32,7 +32,13 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 		role VARCHAR(5) NOT NULL CHECK (role IN ('admin', 'user')),
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`
+	);
+
+	CREATE TABLE IF NOT EXISTS refresh_tokens (
+		user_id BIGINT PRIMARY KEY,
+		token TEXT NOT NULL
+	);
+`
 
 	_, err = db.Exec(query)
 	if err != nil {
@@ -40,7 +46,7 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 		return nil, fmt.Errorf("error creating table: %w", err)
 	}
 
-	log.Info("Table users is ready")
+	log.Info("Tables is ready")
 
 	return db, nil
 }

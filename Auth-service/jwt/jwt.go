@@ -1,6 +1,8 @@
 package jwt
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -10,7 +12,7 @@ import (
 
 type JWTService struct {
 	Key           string
-	tokenDuration time.Duration
+	TokenDuration time.Duration
 }
 
 type Claims struct {
@@ -22,22 +24,44 @@ type Claims struct {
 func NewJWTService(key string, tokenDuration time.Duration) *JWTService {
 	return &JWTService{
 		Key:           key,
-		tokenDuration: tokenDuration,
+		TokenDuration: tokenDuration,
 	}
 }
 
-func (j *JWTService) GenerateToken(userID int64, role entity.Role) (string, error) {
+func (j *JWTService) GenerateAccessToken(userID int64, role entity.Role) (string, error) {
 	claims := &Claims{
 		UserID: userID,
 		Role:   role.StringRole(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.tokenDuration)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.TokenDuration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(j.Key))
+}
+
+func (j *JWTService) GenerateRefreshToken(userID int64, role entity.Role) (string, error) {
+	claims := &Claims{
+		UserID: userID,
+		Role:   role.StringRole(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.TokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(j.Key))
+}
+
+func GenerateRefreshToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func (j *JWTService) VerifyToken(tokenStr string) (*Claims, error) {

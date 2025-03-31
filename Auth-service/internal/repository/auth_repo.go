@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 
 	"chat-grpc/Auth-service/internal/entity"
@@ -16,6 +18,27 @@ type AuthRepo struct {
 
 func NewAuthRepository(db *sql.DB, log *zap.Logger) *AuthRepo {
 	return &AuthRepo{db: db, log: log}
+}
+
+func hashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
+}
+
+func (a *AuthRepo) SaveRefreshToken(userID int64, token string) error {
+	hashedToken := hashToken(token)
+
+	_, err := a.db.Exec(`
+		INSERT INTO refresh_tokens (user_id, token) 
+		VALUES ($1, $2) 
+		ON CONFLICT (user_id) DO UPDATE SET token = $2`,
+		userID, hashedToken,
+	)
+
+	if err != nil {
+		a.log.Error("Failed to save refresh token", zap.Error(err))
+	}
+	return err
 }
 
 func hashPassword(password string, log *zap.Logger) (string, error) {
@@ -158,4 +181,21 @@ func (a *AuthRepo) GetUserByUsername(username string) (*entity.User, error) {
 
 	a.log.Info("Success get user by username", zap.String("username", username))
 	return &user, nil
+}
+
+func (a *AuthRepo) GetUserByRefreshToken(refreshToken string) (int64, error) {
+	hashedToken := hashToken(refreshToken)
+
+	var userID int64
+	err := a.db.QueryRow(
+		"SELECT user_id FROM refresh_tokens WHERE token = $1",
+		hashedToken,
+	).Scan(&userID)
+
+	if err != nil {
+		a.log.Warn("Refresh token not found", zap.Error(err))
+		return 0, errors.New("invalid refresh token")
+	}
+
+	return userID, nil
 }
