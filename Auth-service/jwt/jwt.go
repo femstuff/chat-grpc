@@ -6,11 +6,13 @@ import (
 
 	"chat-grpc/Auth-service/internal/entity"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type JWTService struct {
 	Key           string
 	TokenDuration time.Duration
+	log           *zap.Logger
 }
 
 type Claims struct {
@@ -19,10 +21,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func NewJWTService(key string, tokenDuration time.Duration) *JWTService {
+func NewJWTService(key string, tokenDuration time.Duration, log *zap.Logger) *JWTService {
 	return &JWTService{
 		Key:           key,
 		TokenDuration: tokenDuration,
+		log:           log,
 	}
 }
 
@@ -55,15 +58,17 @@ func (j *JWTService) GenerateRefreshToken(userID int64, role entity.Role) (strin
 }
 
 func (j *JWTService) VerifyAccessToken(tokenStr string) (*Claims, error) {
+	j.log.Info(tokenStr)
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(j.Key), nil
 	})
 	if err != nil {
+		j.log.Info("Error with parsing token", zap.String("token", tokenStr), zap.Error(err))
 		return nil, err
 	}
 
 	claims, ok := token.Claims.(*Claims)
-	if !ok {
+	if !ok || !token.Valid {
 		return nil, errors.New("incorrect token")
 	}
 

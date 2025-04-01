@@ -7,6 +7,8 @@ import (
 	"chat-grpc/Auth-service/internal/usecase"
 	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -111,9 +113,19 @@ func (h *AuthHandler) Delete(ctx context.Context, req *proto_gen.DeleteUserReque
 }
 
 func (h *AuthHandler) Check(ctx context.Context, req *proto_gen.CheckAccessRequest) (*proto_gen.AuthEmpty, error) {
+	h.log.Info("ENDPOINT POEBOTA", zap.String("req", req.EndpointAddress))
 	err := h.usecase.CheckToken(req.EndpointAddress)
 	if err != nil {
 		return nil, err
+	}
+
+	return &proto_gen.AuthEmpty{}, nil
+}
+
+func (h *AuthHandler) CheckToken(ctx context.Context, req *proto_gen.CheckTokenRequest) (*proto_gen.AuthEmpty, error) {
+	err := h.usecase.CheckToken(req.Token)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "invalid token")
 	}
 
 	return &proto_gen.AuthEmpty{}, nil

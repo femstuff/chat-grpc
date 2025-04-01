@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
@@ -37,6 +38,25 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 	CREATE TABLE IF NOT EXISTS refresh_tokens (
 		user_id BIGINT PRIMARY KEY,
 		token TEXT NOT NULL
+	);
+	
+	CREATE  TABLE  IF NOT EXISTS messages (
+	  id SERIAL PRIMARY KEY,
+	  chat_id INT NOT NULL,
+	  user_id BIGINT NOT NULL,
+	  text TEXT NOT NULL,
+	  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP    
+	);
+	
+	CREATE TABLE IF NOT EXISTS chats (
+		id SERIAL PRIMARY KEY,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE IF NOT EXISTS chat_users (
+    chat_id INT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (chat_id, user_id)
 	);`
 
 	_, err = db.Exec(query)

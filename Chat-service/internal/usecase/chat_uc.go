@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"chat-grpc/Chat-service/internal/entity"
 	"chat-grpc/Chat-service/internal/repository"
 	"go.uber.org/zap"
 )
@@ -11,7 +12,8 @@ import (
 type ChatUseCaseInterface interface {
 	Create(usernames []string) (int64, error)
 	Delete(chatID int64) error
-	SendMessage(from, text string, timestamp time.Time) error
+	SendMessage(chatID int64, from, text string, timestamp time.Time) error
+	GetMessages(chatID int64) ([]entity.Message, error)
 }
 
 type ChatUseCase struct {
@@ -39,10 +41,18 @@ func (uc *ChatUseCase) Delete(chatID int64) error {
 	return uc.repo.DeleteChat(chatID)
 }
 
-func (uc *ChatUseCase) SendMessage(from, text string, timestamp time.Time) error {
-	if from == "" || text == "" {
+func (uc *ChatUseCase) SendMessage(chatID int64, from, text string, timestamp time.Time) error {
+	if chatID == 0 || from == "" || text == "" {
 		return errors.New("invalid message parameters")
 	}
 
-	return uc.repo.SendMessage(from, text, timestamp)
+	return uc.repo.SendMessage(chatID, from, text, timestamp)
+}
+
+func (uc *ChatUseCase) GetMessages(chatID int64) ([]entity.Message, error) {
+	if chatID == 0 {
+		return nil, errors.New("invalid chat ID")
+	}
+
+	return uc.repo.GetMessages(chatID)
 }

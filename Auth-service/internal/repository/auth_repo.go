@@ -6,14 +6,16 @@ import (
 	"encoding/hex"
 	"errors"
 
+	"chat-grpc/Auth-service/interceptor"
 	"chat-grpc/Auth-service/internal/entity"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthRepo struct {
-	db  *sql.DB
-	log *zap.Logger
+	db     *sql.DB
+	log    *zap.Logger
+	client *interceptor.AuthClient
 }
 
 func NewAuthRepository(db *sql.DB, log *zap.Logger) *AuthRepo {
@@ -56,16 +58,10 @@ func hashPassword(password string, log *zap.Logger) (string, error) {
 func (a *AuthRepo) CreateUser(name, email, password string, role entity.Role) (int64, error) {
 	a.log.Info("Creating user", zap.String("name", name), zap.String("email", email), zap.String("role", role.StringRole()))
 
-	hashPass, err := hashPassword(password, a.log)
-	if err != nil {
-		a.log.Error("Failed to hash password", zap.Error(err))
-		return 0, err
-	}
-
 	var id int64
 	query := `INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	err = a.db.QueryRow(query, name, email, hashPass, role.StringRole()).Scan(&id)
+	err := a.db.QueryRow(query, name, email, password, role.StringRole()).Scan(&id)
 	if err != nil {
 		a.log.Error("Failed to insert new user in db", zap.Error(err))
 		return 0, err
@@ -79,7 +75,7 @@ func (a *AuthRepo) Login(username, pass string) (string, error) {
 	a.log.Info("Login attempt", zap.String("username", username))
 
 	var hashPassword string
-	query := `SELECT password_hash FROM users WHERE email = $1`
+	query := `SELECT password_hash FROM users WHERE name = $1`
 	err := a.db.QueryRow(query, username).Scan(&hashPassword)
 	if err != nil {
 		a.log.Error("Failed to scan user", zap.Error(err))
@@ -182,6 +178,29 @@ func (a *AuthRepo) GetUserByUsername(username string) (*entity.User, error) {
 	user.Role = entity.ParseRole(roleStr)
 
 	a.log.Info("Success get user by username", zap.String("username", username))
+	return &user, nil
+}
+
+func (a *AuthRepo) GetUserByUsernameAndValidatePassword(username, pass string) (*entity.User, error) {
+	a.log.Info("Login attempt", zap.String("username", username))
+
+	var user entity.User
+	var roleStr string
+
+	query := `SELECT id, name, password_hash, role FROM users WHERE name = $1`
+	err := a.db.QueryRow(query, username).Scan(&user.ID, &user.Name, &user.Password, &roleStr)
+	if err != nil {
+		a.log.Error("Failed to scan user", zap.Error(err))
+		return nil, errors.New("incorrect login or password")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
+		a.log.Error("Auth fail", zap.String("username", username))
+		return nil, errors.New("incorrect login or password")
+	}
+
+	user.Role = entity.ParseRole(roleStr)
+
 	return &user, nil
 }
 
