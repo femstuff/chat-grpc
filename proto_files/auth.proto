@@ -16,6 +16,7 @@ service AuthService {
   rpc GetRefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc GetAccessToken(AccessTokenRequest) returns (AccessTokenResponse);
   rpc Check(CheckAccessRequest) returns (AuthEmpty);
+  rpc CheckToken(CheckTokenRequest) returns (AuthEmpty);
 }
 
 message AuthEmpty {}
@@ -85,6 +86,10 @@ message AccessTokenResponse {
 
 message CheckAccessRequest {
   string endpoint_address = 1;
+}
+
+message CheckTokenRequest {
+  string token = 1;
 }
 
 enum Role {

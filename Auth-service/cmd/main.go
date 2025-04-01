@@ -35,7 +35,7 @@ func main() {
 	defer db.Close()
 
 	repo := repository.NewAuthRepository(db, log)
-	jwt := jwt.NewJWTService("key", 15*time.Minute)
+	jwt := jwt.NewJWTService("key", 15*time.Minute, log)
 	usecase := usecase.NewAuthService(repo, jwt, log)
 	handler := handler.NewAuthHandler(usecase, log)
 

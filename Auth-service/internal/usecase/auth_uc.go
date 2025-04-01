@@ -53,15 +53,10 @@ func (s *AuthService) CreateUser(name, email, password string, role entity.Role)
 }
 
 func (s *AuthService) Login(username, pass string) (string, error) {
-	user, err := s.repo.GetUserByUsername(username)
+	user, err := s.repo.GetUserByUsernameAndValidatePassword(username, pass)
 	if err != nil {
-		s.log.Error("Failed to get user by username", zap.Error(err))
-		return "", errors.New("incorrect login or password")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
-		s.log.Warn("Incorrect password attempt", zap.String("username", username))
-		return "", errors.New("incorrect login or password")
+		s.log.Error("Login failed", zap.Error(err))
+		return "", err
 	}
 
 	refreshToken, err := s.jwtService.GenerateRefreshToken(user.ID, user.Role)

@@ -37,11 +37,12 @@ func (cs *ChatService) Delete(ctx context.Context, req *proto_gen.DeleteRequest)
 		cs.log.Error("failed to delete chat", zap.Error(err))
 		return nil, errors.New("failed to delete chat")
 	}
+
 	return &proto_gen.ChatEmpty{}, nil
 }
 
 func (cs *ChatService) SendMessage(ctx context.Context, req *proto_gen.SendMessageRequest) (*proto_gen.ChatEmpty, error) {
-	err := cs.useCase.SendMessage(req.From, req.Text, req.Timestamp.AsTime())
+	err := cs.useCase.SendMessage(req.ChatId, req.From, req.Text, req.Timestamp.AsTime())
 	if err != nil {
 		cs.log.Error("failed to send message", zap.Error(err))
 		return nil, errors.New("failed to send message")
@@ -51,18 +52,32 @@ func (cs *ChatService) SendMessage(ctx context.Context, req *proto_gen.SendMessa
 }
 
 func (cs *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.ChatService_ConnectServer) error {
-	cs.log.Info("Connecting to chat")
+	if req.ChatId == 0 {
+		cs.log.Error("invalid chat ID", zap.Int64("chat_id", req.ChatId))
+		return errors.New("invalid chat ID")
+	}
+
+	cs.log.Info("Connecting to chat", zap.Int64("chat_id", req.ChatId))
 
 	for {
-		msg := &proto_gen.Message{
-			From:      "test",
-			Text:      "test message",
-			Timestamp: timestamppb.Now(),
-		}
-		if err := stream.Send(msg); err != nil {
-			cs.log.Error("failed to stream send msg", zap.Error(err))
+		messages, err := cs.useCase.GetMessages(req.ChatId)
+		if err != nil {
+			cs.log.Error("failed to get messages", zap.Error(err))
 			return err
 		}
+
+		for _, msg := range messages {
+			err := stream.Send(&proto_gen.Message{
+				From:      string(msg.Sender),
+				Text:      msg.Content,
+				Timestamp: timestamppb.New(msg.CreatedAt),
+			})
+			if err != nil {
+				cs.log.Error("failed to stream message", zap.Error(err))
+				return err
+			}
+		}
+
 		time.Sleep(2 * time.Second)
 	}
 }
