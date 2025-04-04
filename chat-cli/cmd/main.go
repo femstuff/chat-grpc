@@ -25,7 +25,7 @@ var (
 )
 
 func main() {
-	authConn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		fmt.Println("Ошибка подключения к auth-сервису:", err)
 		return
@@ -43,6 +43,7 @@ func main() {
 
 	fmt.Println("Добро пожаловать в gRPC-чат!")
 	fmt.Println("Команды:")
+	fmt.Println("  register <name> <email> <password> <role> - Создать пользователя")
 	fmt.Println("  login <username> <password> - Войти в систему")
 	fmt.Println("  get_access - Получить access token")
 	fmt.Println("  create_chat <user1,user2,...> - Создать чат")
@@ -62,6 +63,15 @@ func main() {
 		}
 
 		switch args[0] {
+		case "register":
+			if len(args) < 5 {
+				fmt.Println("Формат: register <name> <email> <password> <role>")
+				continue
+			}
+			err := registerUser(args[1], args[2], args[3], args[4])
+			if err != nil {
+				fmt.Println("Ошибка:", err)
+			}
 		case "login":
 			if len(args) < 3 {
 				fmt.Println("Формат: login <username> <password>")
@@ -124,6 +134,29 @@ func main() {
 			fmt.Println("Неизвестная команда")
 		}
 	}
+}
+
+func registerUser(name, email, password, roleStr string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	role, err := parseRole(roleStr)
+	if err != nil {
+		return fmt.Errorf("ошибка указания роли: %w", err)
+	}
+
+	resp, err := authClient.Create(ctx, &proto_gen.CreateUserRequest{
+		Name:     name,
+		Email:    email,
+		Password: password,
+		Role:     role,
+	})
+	if err != nil {
+		return fmt.Errorf("ошибка создания пользователя: %w", err)
+	}
+
+	fmt.Println("Пользователь создан, ID:", resp.Id)
+	return nil
 }
 
 func login(username, password string) error {
@@ -265,4 +298,15 @@ func authContext() context.Context {
 		return nil
 	}
 	return metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+token))
+}
+
+func parseRole(roleStr string) (proto_gen.Role, error) {
+	switch strings.ToLower(roleStr) {
+	case "admin":
+		return proto_gen.Role_AdminRole, nil
+	case "user":
+		return proto_gen.Role_UserRole, nil
+	default:
+		return proto_gen.Role_UserRole, fmt.Errorf("unknown role: %s", roleStr)
+	}
 }

@@ -3,15 +3,25 @@ package pkg
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
 func NewDb(log *zap.Logger) (*sql.DB, error) {
-	dsn := "host=localhost user=postgres password=1111 dbname=authdb sslmode=disable"
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_PORT", "5432"),
+		getEnv("DB_USER", "postgres"),
+		getEnv("DB_PASSWORD", "password"),
+		getEnv("DB_NAME", "postgres"),
+	)
+	log.Info("Connecting to DB")
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("postgres", connStr)
+
 	if err != nil {
 		log.Error("Failed connecting to db", zap.Error(err))
 		return nil, fmt.Errorf("error connecting to db: %w", err)
@@ -24,4 +34,11 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 
 	log.Info("Connected to DB successfully")
 	return db, nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
 }

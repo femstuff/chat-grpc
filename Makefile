@@ -1,20 +1,28 @@
-DB_URL=postgres://postgres:1111@localhost:5432/authdb?sslmode=disable
-MIGRATIONS_DIR= ./migrations
+.PHONY: build up down cli logs clean migrate-up migrate-down run-and-cli
 
-install-migrate:
-	go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+build:
+	docker-compose build
+
+up:
+	docker-compose up -d
+
+down:
+	docker-compose down
+
+cli:
+	docker-compose run --service-ports --rm chat-cli
+
+logs:
+	docker-compose logs -f
+
+clean:
+	docker-compose down --rmi all -v
+	docker system prune -f
 
 migrate-up:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose up
+	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -path=/migrations -database "postgres://auth_user:auth_pass@localhost:5432/auth_db?sslmode=disable" up
 
 migrate-down:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down 1
+	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://auth_user:auth_pass@localhost:5432/auth_db?sslmode=disable" down
 
-migrate-reset:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down
-
-migrate-drop:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose drop -f
-
-migrate-force:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" force $(version)
+run-and-cli: up migrate-up cli
