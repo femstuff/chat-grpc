@@ -3,12 +3,13 @@ package handler
 import (
 	"context"
 	"errors"
-	"time"
+	"fmt"
+	"io"
 
 	"chat-grpc/Chat-service/internal/usecase"
 	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	_ "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ChatService struct {
@@ -48,36 +49,49 @@ func (cs *ChatService) SendMessage(ctx context.Context, req *proto_gen.SendMessa
 		return nil, errors.New("failed to send message")
 	}
 
+	cs.log.Info("Message successfully sent", zap.Int64("chat_id", req.ChatId), zap.String("from", req.From))
+
 	return &proto_gen.ChatEmpty{}, nil
 }
 
-func (cs *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.ChatService_ConnectServer) error {
-	if req.ChatId == 0 {
-		cs.log.Error("invalid chat ID", zap.Int64("chat_id", req.ChatId))
-		return errors.New("invalid chat ID")
+func (cs *ChatService) GetMessages(ctx context.Context, req *proto_gen.GetMessagesRequest) (*proto_gen.GetMessagesResponse, error) {
+	messages, err := cs.useCase.GetChatHistory(ctx, req.ChatId)
+	if err != nil {
+		cs.log.Error("failed to get messages", zap.Error(err))
+		return nil, errors.New("failed to get messages")
 	}
 
-	cs.log.Info("Connecting to chat", zap.Int64("chat_id", req.ChatId))
+	return &proto_gen.GetMessagesResponse{Messages: messages}, nil
+}
+
+func (h *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.ChatService_ConnectServer) error {
+	ctx := stream.Context()
+	chatID := req.ChatId
+
+	messages, err := h.useCase.GetChatHistory(ctx, chatID)
+	if err != nil {
+		return fmt.Errorf("error loadeing history chat: %w", err)
+	}
+
+	for _, msg := range messages {
+		if err := stream.Send(msg); err != nil {
+			return fmt.Errorf("error with send msg: %w", err)
+		}
+	}
+
+	messageStream := h.useCase.SubscribeToChat(chatID)
 
 	for {
-		messages, err := cs.useCase.GetMessages(req.ChatId)
-		if err != nil {
-			cs.log.Error("failed to get messages", zap.Error(err))
-			return err
-		}
-
-		for _, msg := range messages {
-			err := stream.Send(&proto_gen.Message{
-				From:      string(msg.Sender),
-				Text:      msg.Content,
-				Timestamp: timestamppb.New(msg.CreatedAt),
-			})
-			if err != nil {
-				cs.log.Error("failed to stream message", zap.Error(err))
-				return err
+		select {
+		case <-ctx.Done():
+			return nil
+		case msg := <-messageStream:
+			if err := stream.Send(msg); err != nil {
+				if err == io.EOF {
+					return nil
+				}
+				fmt.Println("error with send msg:", err)
 			}
 		}
-
-		time.Sleep(2 * time.Second)
 	}
 }
