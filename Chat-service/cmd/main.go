@@ -34,14 +34,16 @@ func main() {
 
 	listener, err := net.Listen("tcp", ":50052")
 	if err != nil {
-		log.Fatal("Failed to listen: %v", zap.Error(err))
+		log.Fatal("Failed to listen", zap.Error(err))
 	}
 
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("auth-service:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatal("Failed to connect to auth service: %v", zap.Error(err))
+		log.Fatal("Failed to connect to auth service", zap.Error(err))
 	}
 	defer conn.Close()
+
+	log.Info("Successfully connected to auth service")
 
 	authClient := interceptor.NewAuthClient(conn)
 
@@ -55,6 +57,6 @@ func main() {
 
 	log.Info("Chat Service is running on port 50052")
 	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatal("Failed to serve: %v", zap.Error(err))
+		log.Fatal("Failed to serve", zap.Error(err))
 	}
 }

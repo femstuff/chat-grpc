@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Auth-service/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: auth_user
+      DB_PASSWORD: auth_pass
+      DB_NAME: auth_db
+      JWT_SECRET: your_jwt_secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: Chat-service/Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: auth_user
+      DB_PASSWORD: auth_pass
+      DB_NAME: auth_db
+      AUTH_SERVICE_ADDR: auth-service:50051
+    depends_on:
+      - postgres
+      - auth-service
+
+  chat-cli:
+    build:
+      context: .
+      dockerfile: chat-cli/Dockerfile
+    depends_on:
+      - chat-service
+    network_mode: host
+
+volumes:
+  postgres_data:
