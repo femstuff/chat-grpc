@@ -45,7 +45,7 @@
 
 ### 1. Клонирование репозитория
 
-    git clone https://github.com/your-repo/chat-grpc.git
+    git clone git@github.com:femstuff/chat-grpc.git
     cd chat-grpc
 
 ### 2. Запуск PostgreSQL
@@ -55,6 +55,9 @@
 ### 3. Миграции (создание таблиц)
 
     make migrate-up
+
+    Используй, если появляются ошибки при попытке создания таблиц:
+    make install-migrate
 
 ### 4. Запуск Auth Service
 
@@ -66,7 +69,7 @@
 
 ### 6. Запуск CLI-клиента
 
-    go run cli/main.go
+    go run chat-cli/main.go
 
 _Использование CLI
 Доступные команды:_
