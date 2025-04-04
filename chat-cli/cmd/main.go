@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"chat-grpc/proto_gen"
@@ -16,9 +17,11 @@ import (
 )
 
 var (
-	authClient proto_gen.AuthServiceClient
-	chatClient proto_gen.ChatServiceClient
-	token      string
+	authClient   proto_gen.AuthServiceClient
+	chatClient   proto_gen.ChatServiceClient
+	refreshToken string
+	accessToken  string
+	mu           sync.Mutex
 )
 
 func main() {
@@ -41,6 +44,7 @@ func main() {
 	fmt.Println("Добро пожаловать в gRPC-чат!")
 	fmt.Println("Команды:")
 	fmt.Println("  login <username> <password> - Войти в систему")
+	fmt.Println("  get_access - Получить access token")
 	fmt.Println("  create_chat <user1,user2,...> - Создать чат")
 	fmt.Println("  send_message <chat_id> <from> <text> - Отправить сообщение")
 	fmt.Println("  connect <chat_id> - Подключиться к чату")
@@ -64,6 +68,12 @@ func main() {
 				continue
 			}
 			err := login(args[1], args[2])
+			if err != nil {
+				fmt.Println("Ошибка:", err)
+			}
+
+		case "get_access":
+			err := getAccess()
 			if err != nil {
 				fmt.Println("Ошибка:", err)
 			}
@@ -128,19 +138,37 @@ func login(username, password string) error {
 		return fmt.Errorf("ошибка авторизации: %w", err)
 	}
 
-	token = resp.RefreshToken
-	fmt.Println("Успешный вход! Refresh Token:", token)
+	setRefreshToken(resp.RefreshToken)
+	fmt.Println("Успешный вход! Используйте 'get_access' для получения access token.")
+	return nil
+}
+
+func getAccess() error {
+	rt := getRefreshToken()
+	if rt == "" {
+		return fmt.Errorf("необходимо авторизоваться")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resp, err := authClient.GetAccessToken(ctx, &proto_gen.AccessTokenRequest{
+		RefreshToken: rt,
+	})
+	if err != nil {
+		return fmt.Errorf("ошибка получения access token: %w", err)
+	}
+
+	setAccessToken(resp.AccessToken)
+	fmt.Println("Access token обновлен!")
 	return nil
 }
 
 func createChat(users []string) error {
-	if token == "" {
-		return fmt.Errorf("необходимо авторизоваться")
+	ctx := authContext()
+	if ctx == nil {
+		return fmt.Errorf("необходимо получить access_token")
 	}
-
-	ctx := context.Background()
-	md := metadata.New(map[string]string{"authorization": token})
-	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	resp, err := chatClient.Create(ctx, &proto_gen.CreateRequest{Usernames: users})
 	if err != nil {
@@ -152,13 +180,10 @@ func createChat(users []string) error {
 }
 
 func sendMessage(chatID int64, from, text string) error {
-	if token == "" {
-		return fmt.Errorf("необходимо авторизоваться")
+	ctx := authContext()
+	if ctx == nil {
+		return fmt.Errorf("необходимо получить access_token")
 	}
-
-	ctx := context.Background()
-	md := metadata.New(map[string]string{"authorization": token})
-	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	_, err := chatClient.SendMessage(ctx, &proto_gen.SendMessageRequest{
 		ChatId: chatID,
@@ -173,18 +198,28 @@ func sendMessage(chatID int64, from, text string) error {
 	return nil
 }
 
-func connectToChat(chatID int64) error {
-	if token == "" {
-		return fmt.Errorf("необходимо авторизоваться")
+func connectToChat(chatID int64) {
+	ctx := authContext()
+	if ctx == nil {
+		fmt.Println("Необходимо получить access_token")
+		return
 	}
 
-	ctx := context.Background()
-	md := metadata.New(map[string]string{"authorization": token})
-	ctx = metadata.NewOutgoingContext(ctx, md)
+	historyResp, err := chatClient.GetMessages(ctx, &proto_gen.GetMessagesRequest{ChatId: chatID})
+	if err != nil {
+		fmt.Println("Ошибка загрузки истории:", err)
+		return
+	}
+
+	fmt.Println("История чата:")
+	for _, msg := range historyResp.Messages {
+		fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format(time.RFC822), msg.From, msg.Text)
+	}
 
 	stream, err := chatClient.Connect(ctx, &proto_gen.ConnectRequest{ChatId: chatID})
 	if err != nil {
-		return fmt.Errorf("ошибка подключения к чату: %w", err)
+		fmt.Println("Ошибка подключения к чату:", err)
+		return
 	}
 
 	fmt.Println("Подключен к чату. Ожидание сообщений...")
@@ -193,9 +228,41 @@ func connectToChat(chatID int64) error {
 		msg, err := stream.Recv()
 		if err != nil {
 			fmt.Println("Ошибка при получении сообщения:", err)
-			return err
+			return
 		}
 
 		fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format(time.RFC822), msg.From, msg.Text)
 	}
+}
+
+func setRefreshToken(token string) {
+	mu.Lock()
+	defer mu.Unlock()
+	refreshToken = token
+}
+
+func getRefreshToken() string {
+	mu.Lock()
+	defer mu.Unlock()
+	return refreshToken
+}
+
+func setAccessToken(token string) {
+	mu.Lock()
+	defer mu.Unlock()
+	accessToken = token
+}
+
+func getAccessToken() string {
+	mu.Lock()
+	defer mu.Unlock()
+	return accessToken
+}
+
+func authContext() context.Context {
+	token := getAccessToken()
+	if token == "" {
+		return nil
+	}
+	return metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+token))
 }

@@ -1,19 +1,21 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
 
-	"chat-grpc/Chat-service/internal/entity"
+	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ChatRepo interface {
 	CreateChat(usernames []string) (int64, error)
 	DeleteChat(id int64) error
 	SendMessage(chatID int64, from, text string, timestamp time.Time) error
-	GetMessages(chatID int64) ([]entity.Message, error)
+	GetMessagesByChatID(ctx context.Context, chatID int64) ([]*proto_gen.Message, error)
 }
 
 type chatRepository struct {
@@ -90,24 +92,41 @@ func (r *chatRepository) SendMessage(chatID int64, username, text string, timest
 	return nil
 }
 
-func (r *chatRepository) GetMessages(chatID int64) ([]entity.Message, error) {
-	query := "SELECT user_id, text, timestamp FROM messages WHERE chat_id = $1 ORDER BY timestamp"
-	rows, err := r.db.Query(query, chatID)
+func (r *chatRepository) GetMessagesByChatID(ctx context.Context, chatID int64) ([]*proto_gen.Message, error) {
+	query := `SELECT u.name, m.text, m.timestamp 
+			  FROM messages m
+			  JOIN users u ON m.user_id = u.id
+			  WHERE m.chat_id = $1
+			  ORDER BY m.timestamp ASC`
+
+	rows, err := r.db.QueryContext(ctx, query, chatID)
 	if err != nil {
-		r.log.Error("Failed to get messages", zap.Error(err))
+		r.log.Error("Failed to fetch chat history", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
 
-	var messages []entity.Message
+	var messages []*proto_gen.Message
 	for rows.Next() {
-		var msg entity.Message
-		err := rows.Scan(&msg.Sender, &msg.Content, &msg.CreatedAt)
-		if err != nil {
-			r.log.Error("Failed to scan message", zap.Error(err))
+		var username, text string
+		var timestamp time.Time
+
+		if err := rows.Scan(&username, &text, &timestamp); err != nil {
+			r.log.Error("Failed to scan message row", zap.Error(err))
 			return nil, err
 		}
-		messages = append(messages, msg)
+
+		messages = append(messages, &proto_gen.Message{
+			ChatId:    chatID,
+			From:      username,
+			Text:      text,
+			Timestamp: timestamppb.New(timestamp),
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		r.log.Error("Row iteration error", zap.Error(err))
+		return nil, err
 	}
 
 	return messages, nil
