@@ -4,15 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/http"
-	"net/url"
 	_ "net/url"
 	"strings"
 	"time"
 
 	"chat-grpc/proto_gen"
-	readability "github.com/go-shiori/go-readability"
-
+	"github.com/otiai10/opengraph/v2"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -80,27 +77,42 @@ func (r *chatRepository) DeleteChat(id int64) error {
 func (r *chatRepository) SendMessage(chatID int64, username, text string, timestamp time.Time) error {
 	r.log.Info("Sending message", zap.Int64("chat_id", chatID), zap.String("username", username))
 	// text = https://github.com/ split : [0]
-	checkUrl := strings.Split(text, ":")
+	checkUrl := strings.Split(text, "://")
 	if checkUrl[0] == "https" {
-		resp, err := http.Get(text)
+		//resp, err := http.Get(text)
+		//if err != nil {
+		//	r.log.Error("Failed to fetch URL", zap.String("url", text), zap.Error(err))
+		//	return err
+		//}
+		//defer resp.Body.Close()
+
+		//parsedUrl, err := url.Parse(text)
+		//if err != nil {
+		//	r.log.Error("Failed to fetch URL", zap.String("url", text), zap.Error(err))
+		//	return err
+		//}
+		//
+		//article, err := readability.FromReader(resp.Body, parsedUrl)
+		//if err != nil {
+		//	r.log.Error("Failed to extract metadata from URL", zap.String("url", text), zap.Error(err))
+		//	return err
+		//}
+		//
+		//shortContent := article.TextContent
+		//if len(article.TextContent) >= 200 {
+		//	shortContent = shortContent[:200] + "..."
+		//}
+		//
+		//text += fmt.Sprintf("\n\nSite name: %s\n\nTitle: %s\n\nDescription: %s\n\nImage: %s\n\nFavicon: %s\n\nURL: [%s]",
+		//	article.SiteName, article.Title, shortContent, article.Image, article.Favicon, text)
+		ogp, err := opengraph.Fetch(text)
 		if err != nil {
+			fmt.Println("Ошибка при получении Open Graph данных:", err)
 			return err
 		}
-		defer resp.Body.Close()
 
-		parsedUrl, err := url.Parse(text)
-		if err != nil {
-			return err
-		}
-
-		article, err := readability.FromReader(resp.Body, parsedUrl)
-		if err != nil {
-			return err
-		}
-
-		text += fmt.Sprintf("\n\nTitle: %s\n\nDescription: %s\n\nImage: %s\n\nURL: [%s]",
-			article.Title, article.TextContent, article.Image, text)
-
+		text += fmt.Sprintf("\n\nTitle: %s\n\nDescription: %s\n\nImage: %v\n\nURL: %s",
+			ogp.Title, ogp.Description, ogp.Image, ogp.URL)
 	}
 
 	var userID int64

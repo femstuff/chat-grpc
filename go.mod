@@ -3,7 +3,7 @@ module chat-grpc
 go 1.24.1
 
 require (
-	github.com/go-shiori/go-readability v0.0.0-20250217085726-9f5bf5ca7612
+	github.com/fern4lvarez/go-metainspector v0.0.0-20160307191140-7872a870333f
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.10.0
@@ -14,12 +14,10 @@ require (
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
+	bitbucket.org/zaphar/go-html-transform v0.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c // indirect
-	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/kr/pretty v0.3.1 // indirect
+	github.com/otiai10/opengraph/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
