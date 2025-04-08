@@ -27,11 +27,12 @@ var (
 )
 
 func main() {
-	log, err := zap.NewProduction()
+	logger, err := zap.NewProduction()
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
+	log = logger
 	defer log.Sync()
 
 	authConn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))

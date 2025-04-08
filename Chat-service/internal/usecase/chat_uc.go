@@ -53,7 +53,7 @@ func (uc *ChatUseCase) SendMessage(chatID int64, from, text string, timestamp ti
 		return errors.New("invalid message parameters")
 	}
 
-	err := uc.repo.SendMessage(chatID, from, text, timestamp)
+	modText, err := uc.repo.SendMessage(chatID, from, text, timestamp)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (uc *ChatUseCase) SendMessage(chatID int64, from, text string, timestamp ti
 	msg := &proto_gen.Message{
 		ChatId:    chatID,
 		From:      from,
-		Text:      text,
+		Text:      modText,
 		Timestamp: timestamppb.New(timestamp),
 	}
 
