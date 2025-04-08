@@ -3,20 +3,17 @@ package pkg
 import (
 	"database/sql"
 	"fmt"
-	"os"
 
+	"chat-grpc/pkg/config"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
 func NewDb(log *zap.Logger) (*sql.DB, error) {
+	cfg := config.LoadConfig()
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		getEnv("DB_HOST", "localhost"),
-		getEnv("DB_PORT", "5432"),
-		getEnv("DB_USER", "postgres"),
-		getEnv("DB_PASSWORD", "password"),
-		getEnv("DB_NAME", "postgres"),
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName,
 	)
 	log.Info("Connecting to DB")
 
@@ -34,11 +31,4 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 
 	log.Info("Connected to DB successfully")
 	return db, nil
-}
-
-func getEnv(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return defaultValue
 }

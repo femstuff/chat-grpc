@@ -113,7 +113,6 @@ func (h *AuthHandler) Delete(ctx context.Context, req *proto_gen.DeleteUserReque
 }
 
 func (h *AuthHandler) Check(ctx context.Context, req *proto_gen.CheckAccessRequest) (*proto_gen.AuthEmpty, error) {
-	h.log.Info("ENDPOINT POEBOTA", zap.String("req", req.EndpointAddress))
 	err := h.usecase.CheckToken(req.EndpointAddress)
 	if err != nil {
 		return nil, err
