@@ -64,11 +64,11 @@ func (cs *ChatService) GetMessages(ctx context.Context, req *proto_gen.GetMessag
 	return &proto_gen.GetMessagesResponse{Messages: messages}, nil
 }
 
-func (h *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.ChatService_ConnectServer) error {
+func (cs *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.ChatService_ConnectServer) error {
 	ctx := stream.Context()
 	chatID := req.ChatId
 
-	messages, err := h.useCase.GetChatHistory(ctx, chatID)
+	messages, err := cs.useCase.GetChatHistory(ctx, chatID)
 	if err != nil {
 		return fmt.Errorf("error loadeing history chat: %w", err)
 	}
@@ -79,7 +79,7 @@ func (h *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.Ch
 		}
 	}
 
-	messageStream := h.useCase.SubscribeToChat(chatID)
+	messageStream := cs.useCase.SubscribeToChat(chatID)
 
 	for {
 		select {
