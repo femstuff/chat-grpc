@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"chat-grpc/proto_gen"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -22,21 +23,27 @@ var (
 	refreshToken string
 	accessToken  string
 	mu           sync.Mutex
+	log          *zap.Logger
 )
 
 func main() {
+	log, err := zap.NewProduction()
+	if err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer log.Sync()
+
 	authConn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		fmt.Println("Ошибка подключения к auth-сервису:", err)
-		return
+		log.Fatal("Failed to connect to auth service", zap.Error(err))
 	}
 	defer authConn.Close()
 	authClient = proto_gen.NewAuthServiceClient(authConn)
 
-	chatConn, err := grpc.Dial("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	chatConn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		fmt.Println("Ошибка подключения к chat-сервису:", err)
-		return
+		log.Fatal("Failed to connect to chat service", zap.Error(err))
 	}
 	defer chatConn.Close()
 	chatClient = proto_gen.NewChatServiceClient(chatConn)
@@ -70,7 +77,7 @@ func main() {
 			}
 			err := registerUser(args[1], args[2], args[3], args[4])
 			if err != nil {
-				fmt.Println("Ошибка:", err)
+				log.Error("Registration failed", zap.Error(err))
 			}
 		case "login":
 			if len(args) < 3 {
@@ -79,13 +86,13 @@ func main() {
 			}
 			err := login(args[1], args[2])
 			if err != nil {
-				fmt.Println("Ошибка:", err)
+				log.Error("Login failed", zap.Error(err))
 			}
 
 		case "get_access":
 			err := getAccess()
 			if err != nil {
-				fmt.Println("Ошибка:", err)
+				log.Error("Failed to get access token", zap.Error(err))
 			}
 
 		case "create_chat":
@@ -96,7 +103,7 @@ func main() {
 			users := strings.Split(args[1], ",")
 			err := createChat(users)
 			if err != nil {
-				fmt.Println("Ошибка:", err)
+				log.Error("Failed to create chat", zap.Error(err))
 			}
 
 		case "send_message":
@@ -106,12 +113,12 @@ func main() {
 			}
 			chatID, err := strconv.ParseInt(args[1], 10, 64)
 			if err != nil {
-				fmt.Println("Неверный ID чата")
+				log.Warn("Invalid chat ID", zap.String("input", args[1]))
 				continue
 			}
 			err = sendMessage(chatID, args[2], strings.Join(args[3:], " "))
 			if err != nil {
-				fmt.Println("Ошибка:", err)
+				log.Error("Failed to send message", zap.Error(err))
 			}
 
 		case "connect":
@@ -121,17 +128,17 @@ func main() {
 			}
 			chatID, err := strconv.ParseInt(args[1], 10, 64)
 			if err != nil {
-				fmt.Println("Неверный ID чата")
+				log.Warn("Invalid chat ID", zap.String("input", args[1]))
 				continue
 			}
 			connectToChat(chatID)
 
 		case "exit":
-			fmt.Println("Выход из программы")
+			log.Info("Exiting CLI")
 			return
 
 		default:
-			fmt.Println("Неизвестная команда")
+			log.Info("Unknown command")
 		}
 	}
 }
@@ -142,6 +149,7 @@ func registerUser(name, email, password, roleStr string) error {
 
 	role, err := parseRole(roleStr)
 	if err != nil {
+		log.Warn("Invalid role", zap.String("input", roleStr), zap.Error(err))
 		return fmt.Errorf("ошибка указания роли: %w", err)
 	}
 
@@ -155,6 +163,7 @@ func registerUser(name, email, password, roleStr string) error {
 		return fmt.Errorf("ошибка создания пользователя: %w", err)
 	}
 
+	log.Info("User registered", zap.Int64("user_id", resp.Id))
 	fmt.Println("Пользователь создан, ID:", resp.Id)
 	return nil
 }
@@ -172,6 +181,7 @@ func login(username, password string) error {
 	}
 
 	setRefreshToken(resp.RefreshToken)
+	log.Info("Login successful, refresh token received")
 	fmt.Println("Успешный вход! Используйте 'get_access' для получения access token.")
 	return nil
 }
@@ -181,6 +191,8 @@ func getAccess() error {
 	if rt == "" {
 		return fmt.Errorf("необходимо авторизоваться")
 	}
+
+	log.Info("Requesting new access token")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -193,6 +205,7 @@ func getAccess() error {
 	}
 
 	setAccessToken(resp.AccessToken)
+	log.Info("Access token updated")
 	fmt.Println("Access token обновлен!")
 	return nil
 }
@@ -203,11 +216,14 @@ func createChat(users []string) error {
 		return fmt.Errorf("необходимо получить access_token")
 	}
 
+	log.Info("Creating chat", zap.Strings("users", users))
+
 	resp, err := chatClient.Create(ctx, &proto_gen.CreateRequest{Usernames: users})
 	if err != nil {
 		return fmt.Errorf("ошибка создания чата: %w", err)
 	}
 
+	log.Info("Chat created", zap.Int64("chat_id", resp.Id))
 	fmt.Println("Чат создан, ID:", resp.Id)
 	return nil
 }
@@ -218,6 +234,8 @@ func sendMessage(chatID int64, from, text string) error {
 		return fmt.Errorf("необходимо получить access_token")
 	}
 
+	log.Info("Sending message", zap.Int64("chat_id", chatID), zap.String("from", from))
+
 	_, err := chatClient.SendMessage(ctx, &proto_gen.SendMessageRequest{
 		ChatId: chatID,
 		From:   from,
@@ -227,6 +245,7 @@ func sendMessage(chatID int64, from, text string) error {
 		return fmt.Errorf("ошибка отправки сообщения: %w", err)
 	}
 
+	log.Info("Message sent")
 	fmt.Println("Сообщение отправлено")
 	return nil
 }
@@ -234,38 +253,57 @@ func sendMessage(chatID int64, from, text string) error {
 func connectToChat(chatID int64) {
 	ctx := authContext()
 	if ctx == nil {
+		log.Warn("Access token is missing")
 		fmt.Println("Необходимо получить access_token")
 		return
 	}
 
+	log.Info("Connecting to chat", zap.Int64("chat_id", chatID))
+
 	historyResp, err := chatClient.GetMessages(ctx, &proto_gen.GetMessagesRequest{ChatId: chatID})
 	if err != nil {
+		log.Error("Failed to load chat history", zap.Error(err))
 		fmt.Println("Ошибка загрузки истории:", err)
 		return
 	}
 
 	fmt.Println("История чата:")
 	for _, msg := range historyResp.Messages {
-		fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format(time.RFC822), msg.From, msg.Text)
+		fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format("15:04"), msg.From, msg.Text)
 	}
 
 	stream, err := chatClient.Connect(ctx, &proto_gen.ConnectRequest{ChatId: chatID})
 	if err != nil {
+		log.Error("Failed to connect to chat stream", zap.Error(err))
 		fmt.Println("Ошибка подключения к чату:", err)
 		return
 	}
 
+	log.Info("Connected to chat stream", zap.Int64("chat_id", chatID))
 	fmt.Println("Подключен к чату. Ожидание сообщений...")
 
-	for {
-		msg, err := stream.Recv()
-		if err != nil {
-			fmt.Println("Ошибка при получении сообщения:", err)
-			return
-		}
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err != nil {
+				log.Error("Error receiving message", zap.Error(err))
+				fmt.Println("Ошибка при получении сообщения:", err)
+				return
+			}
 
-		fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format(time.RFC822), msg.From, msg.Text)
-	}
+			fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format("15:04"), msg.From, msg.Text)
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			if scanner.Text() == "exit" {
+				log.Info("User exited chat", zap.Int64("chat_id", chatID))
+				return
+			}
+		}
+	}()
 }
 
 func setRefreshToken(token string) {
