@@ -16,7 +16,7 @@ import (
 type ChatRepo interface {
 	CreateChat(usernames []string) (int64, error)
 	DeleteChat(id int64) error
-	SendMessage(chatID int64, from, text string, timestamp time.Time) error
+	SendMessage(chatID int64, from, text string, timestamp time.Time) (string, error)
 	GetMessagesByChatID(ctx context.Context, chatID int64) ([]*proto_gen.Message, error)
 }
 
@@ -73,7 +73,7 @@ func (r *chatRepository) DeleteChat(id int64) error {
 	return nil
 }
 
-func (r *chatRepository) SendMessage(chatID int64, username, text string, timestamp time.Time) error {
+func (r *chatRepository) SendMessage(chatID int64, username, text string, timestamp time.Time) (string, error) {
 	r.log.Info("Sending message", zap.Int64("chat_id", chatID), zap.String("username", username))
 	// text = https://github.com/ split : [0]
 	checkUrl := strings.Split(text, "://")
@@ -81,6 +81,7 @@ func (r *chatRepository) SendMessage(chatID int64, username, text string, timest
 		ogp, err := opengraph.Fetch(text)
 		if err != nil {
 			r.log.Error("Failed to fetch URL", zap.String("url", text), zap.Error(err))
+			return "", err
 		}
 
 		text += fmt.Sprintf("\n\nTitle: %s\n\nDescription: %s\n\nImage: %v\n\nURL: [%s]",
@@ -91,18 +92,18 @@ func (r *chatRepository) SendMessage(chatID int64, username, text string, timest
 	err := r.db.QueryRow("SELECT id FROM users WHERE name = $1", username).Scan(&userID)
 	if err != nil {
 		r.log.Error("User not found", zap.String("username", username), zap.Error(err))
-		return fmt.Errorf("user %s not found: %w", username, err)
+		return "", err
 	}
 
 	query := `INSERT INTO messages (chat_id, user_id, text, timestamp) VALUES ($1, $2, $3, $4)`
 	_, err = r.db.Exec(query, chatID, userID, text, timestamp)
 	if err != nil {
 		r.log.Error("Failed to send message", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	r.log.Info("Message sent successfully", zap.Int64("chat_id", chatID), zap.String("username", username))
-	return nil
+	return text, nil
 }
 
 func (r *chatRepository) GetMessagesByChatID(ctx context.Context, chatID int64) ([]*proto_gen.Message, error) {
