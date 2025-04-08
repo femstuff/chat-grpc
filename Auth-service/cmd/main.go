@@ -9,6 +9,7 @@ import (
 	"chat-grpc/Auth-service/internal/usecase"
 	"chat-grpc/Auth-service/jwt"
 	"chat-grpc/pkg"
+	"chat-grpc/pkg/config"
 	"chat-grpc/pkg/logger"
 	"chat-grpc/proto_gen"
 	_ "github.com/lib/pq"
@@ -17,13 +18,14 @@ import (
 )
 
 func main() {
+	cfg := config.LoadConfig()
 	log, err := logger.NewLogger()
 	if err != nil {
 		log.Fatal("Failed to init logger", zap.Error(err))
 	}
 	defer log.Sync()
 
-	listener, err := net.Listen("tcp", ":50051")
+	listener, err := net.Listen("tcp", ":"+cfg.SERVER_PORT_AUTH)
 	if err != nil {
 		log.Fatal("Failed to serve gRPC server", zap.Error(err))
 	}
@@ -42,7 +44,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	proto_gen.RegisterAuthServiceServer(grpcServer, handler)
 
-	log.Info("gRPC Auth Service is running on port 50051")
+	log.Info("gRPC Auth Service is running on ", zap.String("port", cfg.SERVER_PORT_AUTH))
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatal("Failed to serve: %v", zap.Error(err))
 	}
