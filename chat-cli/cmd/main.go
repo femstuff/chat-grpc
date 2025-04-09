@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"chat-grpc/pkg/config"
 	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -27,6 +28,7 @@ var (
 )
 
 func main() {
+	cfg := config.LoadConfig()
 	logger, err := zap.NewProduction()
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
@@ -35,14 +37,14 @@ func main() {
 	log = logger
 	defer log.Sync()
 
-	authConn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.NewClient("localhost:"+cfg.SERVER_PORT_AUTH, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("Failed to connect to auth service", zap.Error(err))
 	}
 	defer authConn.Close()
 	authClient = proto_gen.NewAuthServiceClient(authConn)
 
-	chatConn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	chatConn, err := grpc.NewClient("localhost:"+cfg.SERVER_PORT_CHAT, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("Failed to connect to chat service", zap.Error(err))
 	}
@@ -61,6 +63,7 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
+		time.Sleep(100 * time.Millisecond)
 		fmt.Print("> ")
 		scanner.Scan()
 		input := scanner.Text()
