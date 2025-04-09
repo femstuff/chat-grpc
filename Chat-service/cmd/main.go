@@ -48,13 +48,11 @@ func main() {
 	log.Info("Successfully connected to auth service")
 
 	authClient := interceptor.NewAuthClient(conn)
-
 	authInterceptor := interceptor.NewAuthInterceptor(authClient, log)
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(authInterceptor.Unary()),
 	)
-
 	proto_gen.RegisterChatServiceServer(grpcServer, chatHandler)
 
 	log.Info("Chat Service is running on ", zap.String("port", cfg.SERVER_PORT_CHAT))
