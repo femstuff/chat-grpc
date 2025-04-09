@@ -63,9 +63,11 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		time.Sleep(100 * time.Millisecond)
 		fmt.Print("> ")
-		scanner.Scan()
+		if !scanner.Scan() {
+			break
+		}
+
 		input := scanner.Text()
 		args := strings.Fields(input)
 
