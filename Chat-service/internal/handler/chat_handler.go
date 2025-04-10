@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 
 	"chat-grpc/Chat-service/internal/usecase"
 	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
-	_ "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ChatService struct {
@@ -70,28 +68,26 @@ func (cs *ChatService) Connect(req *proto_gen.ConnectRequest, stream proto_gen.C
 
 	messages, err := cs.useCase.GetChatHistory(ctx, chatID)
 	if err != nil {
-		return fmt.Errorf("error loadeing history chat: %w", err)
+		return fmt.Errorf("error loading chat history: %w", err)
 	}
 
 	for _, msg := range messages {
 		if err := stream.Send(msg); err != nil {
-			return fmt.Errorf("error with send msg: %w", err)
+			return fmt.Errorf("error sending history message: %w", err)
 		}
 	}
 
-	messageStream := cs.useCase.SubscribeToChat(chatID)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case msg := <-messageStream:
-			if err := stream.Send(msg); err != nil {
-				if err == io.EOF {
-					return nil
-				}
-				fmt.Println("error with send msg:", err)
-			}
+	subject := fmt.Sprintf("chat.%d", chatID)
+	sub, err := cs.useCase.Subscribe(subject, func(msg *proto_gen.Message) {
+		if err := stream.Send(msg); err != nil {
+			cs.log.Warn("failed to send message stream", zap.Error(err))
 		}
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to NATS: %w", err)
 	}
+	defer sub.Unsubscribe()
+
+	<-ctx.Done()
+	return nil
 }

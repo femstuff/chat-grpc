@@ -272,6 +272,7 @@ func connectToChat(chatID int64) {
 	if err != nil {
 		log.Error("Failed to load chat history", zap.Error(err))
 		fmt.Println("Ошибка загрузки истории:", err)
+
 		return
 	}
 

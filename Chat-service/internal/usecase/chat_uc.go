@@ -9,6 +9,7 @@ import (
 	"chat-grpc/Chat-service/internal/broker"
 	"chat-grpc/Chat-service/internal/repository"
 	"chat-grpc/proto_gen"
+	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -18,25 +19,18 @@ type ChatUseCaseInterface interface {
 	Delete(chatID int64) error
 	SendMessage(chatID int64, from, text string, timestamp time.Time) error
 	GetChatHistory(ctx context.Context, chatID int64) ([]*proto_gen.Message, error)
-	SubscribeToChat(chatID int64) <-chan *proto_gen.Message
-	PublishMessage(msg *proto_gen.Message)
+	Subscribe(subject string, handler func(*proto_gen.Message)) (*nats.Subscription, error)
 }
 
 type ChatUseCase struct {
-	repo      repository.ChatRepo
-	log       *zap.Logger
-	msgStream map[int64]chan *proto_gen.Message
-	mu        sync.Mutex
-	broker    broker.Broker
+	repo   repository.ChatRepo
+	log    *zap.Logger
+	mu     sync.Mutex
+	broker broker.Broker
 }
 
 func NewChatUseCase(repo repository.ChatRepo, log *zap.Logger, broker broker.Broker) *ChatUseCase {
-	return &ChatUseCase{
-		repo:      repo,
-		log:       log,
-		msgStream: make(map[int64]chan *proto_gen.Message),
-		broker:    broker,
-	}
+	return &ChatUseCase{repo: repo, log: log, broker: broker}
 }
 
 func (uc *ChatUseCase) Create(usernames []string) (int64, error) {
@@ -84,36 +78,6 @@ func (uc *ChatUseCase) GetChatHistory(ctx context.Context, chatID int64) ([]*pro
 	return uc.repo.GetMessagesByChatID(ctx, chatID)
 }
 
-func (uc *ChatUseCase) SubscribeToChat(chatID int64) <-chan *proto_gen.Message {
-	uc.mu.Lock()
-	defer uc.mu.Unlock()
-
-	if _, exists := uc.msgStream[chatID]; !exists {
-		stream := make(chan *proto_gen.Message, 10)
-		uc.msgStream[chatID] = stream
-
-		_ = uc.broker.Subscribe(chatID, func(msg *proto_gen.Message) {
-			select {
-			case stream <- msg:
-			default:
-				uc.log.Warn("Канал переполнен", zap.Int64("chat_id", chatID))
-			}
-		})
-	}
-
-	return uc.msgStream[chatID]
-}
-
-func (uc *ChatUseCase) PublishMessage(msg *proto_gen.Message) {
-	uc.mu.Lock()
-	stream, exists := uc.msgStream[msg.ChatId]
-	uc.mu.Unlock()
-
-	if exists {
-		select {
-		case stream <- msg:
-		default:
-			uc.log.Warn("Канал подписки переполнен, сообщение потеряно", zap.Int64("chatID", msg.ChatId))
-		}
-	}
+func (uc *ChatUseCase) Subscribe(subject string, handler func(*proto_gen.Message)) (*nats.Subscription, error) {
+	return uc.broker.Subscribe(subject, handler)
 }

@@ -1,8 +1,8 @@
 package broker
 
 import (
-	"encoding/json"
 	"fmt"
+	"log"
 
 	"chat-grpc/proto_gen"
 	"github.com/nats-io/nats.go"
@@ -21,6 +21,17 @@ func NewNatsBroker(url string) (Broker, error) {
 	return &natsBroker{conn: nc}, nil
 }
 
+func (b *natsBroker) Subscribe(subject string, handler func(*proto_gen.Message)) (*nats.Subscription, error) {
+	return b.conn.Subscribe(subject, func(m *nats.Msg) {
+		var msg proto_gen.Message
+		if err := protojson.Unmarshal(m.Data, &msg); err != nil {
+			log.Fatal("Failed to parse json")
+			return
+		}
+		handler(&msg)
+	})
+}
+
 func (b *natsBroker) Publish(msg *proto_gen.Message) error {
 	subject := fmt.Sprintf("chat.%d", msg.ChatId)
 
@@ -30,18 +41,6 @@ func (b *natsBroker) Publish(msg *proto_gen.Message) error {
 	}
 
 	return b.conn.Publish(subject, data)
-}
-
-func (b *natsBroker) Subscribe(chatID int64, handler func(msg *proto_gen.Message)) error {
-	subject := fmt.Sprintf("chat.%d", chatID)
-	_, err := b.conn.Subscribe(subject, func(msg *nats.Msg) {
-		var m proto_gen.Message
-		if err := json.Unmarshal(msg.Data, &m); err == nil {
-			handler(&m)
-		}
-	})
-
-	return err
 }
 
 func (b *natsBroker) Close() error {

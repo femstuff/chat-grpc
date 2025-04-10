@@ -12,7 +12,6 @@ import (
 	"chat-grpc/pkg/config"
 	"chat-grpc/pkg/logger"
 	"chat-grpc/proto_gen"
-	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
