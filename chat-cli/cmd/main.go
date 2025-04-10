@@ -12,10 +12,12 @@ import (
 
 	"chat-grpc/pkg/config"
 	"chat-grpc/proto_gen"
+	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -37,14 +39,14 @@ func main() {
 	log = logger
 	defer log.Sync()
 
-	authConn, err := grpc.NewClient("localhost:"+cfg.SERVER_PORT_AUTH, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.NewClient("localhost:"+cfg.ServerPortAuth, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("Failed to connect to auth service", zap.Error(err))
 	}
 	defer authConn.Close()
 	authClient = proto_gen.NewAuthServiceClient(authConn)
 
-	chatConn, err := grpc.NewClient("localhost:"+cfg.SERVER_PORT_CHAT, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	chatConn, err := grpc.NewClient("localhost:"+cfg.ServerPortChat, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("Failed to connect to chat service", zap.Error(err))
 	}
@@ -276,6 +278,30 @@ func connectToChat(chatID int64) {
 	fmt.Println("История чата:")
 	for _, msg := range historyResp.Messages {
 		fmt.Printf("[%s] %s: %s\n", msg.Timestamp.AsTime().Format("15:04"), msg.From, msg.Text)
+	}
+
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		log.Error("Failed to connect to NATS", zap.Error(err))
+		fmt.Println("Ошибка подключения к NATS:", err)
+		return
+	}
+
+	subject := fmt.Sprintf("chat.%d", chatID)
+	_, err = nc.Subscribe(subject, func(msg *nats.Msg) {
+		var m proto_gen.Message
+		if err := protojson.Unmarshal(msg.Data, &m); err != nil {
+			log.Error("Failed to parse protojson message", zap.Error(err))
+			return
+		}
+
+		log.Info("incoming message (NATS)",
+			zap.String("from", m.From),
+			zap.String("text", m.Text))
+	})
+	if err != nil {
+		log.Error("Failed to subscribe to NATS", zap.Error(err))
+		return
 	}
 
 	stream, err := chatClient.Connect(ctx, &proto_gen.ConnectRequest{ChatId: chatID})

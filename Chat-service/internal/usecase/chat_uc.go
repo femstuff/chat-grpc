@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"chat-grpc/Chat-service/internal/broker"
 	"chat-grpc/Chat-service/internal/repository"
 	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
@@ -26,10 +27,16 @@ type ChatUseCase struct {
 	log       *zap.Logger
 	msgStream map[int64]chan *proto_gen.Message
 	mu        sync.Mutex
+	broker    broker.Broker
 }
 
-func NewChatUseCase(repo repository.ChatRepo, log *zap.Logger) *ChatUseCase {
-	return &ChatUseCase{repo: repo, log: log, msgStream: make(map[int64]chan *proto_gen.Message)}
+func NewChatUseCase(repo repository.ChatRepo, log *zap.Logger, broker broker.Broker) *ChatUseCase {
+	return &ChatUseCase{
+		repo:      repo,
+		log:       log,
+		msgStream: make(map[int64]chan *proto_gen.Message),
+		broker:    broker,
+	}
 }
 
 func (uc *ChatUseCase) Create(usernames []string) (int64, error) {
@@ -66,9 +73,7 @@ func (uc *ChatUseCase) SendMessage(chatID int64, from, text string, timestamp ti
 		Timestamp: timestamppb.New(timestamp),
 	}
 
-	uc.PublishMessage(msg)
-
-	return nil
+	return uc.broker.Publish(msg)
 }
 
 func (uc *ChatUseCase) GetChatHistory(ctx context.Context, chatID int64) ([]*proto_gen.Message, error) {
@@ -84,7 +89,16 @@ func (uc *ChatUseCase) SubscribeToChat(chatID int64) <-chan *proto_gen.Message {
 	defer uc.mu.Unlock()
 
 	if _, exists := uc.msgStream[chatID]; !exists {
-		uc.msgStream[chatID] = make(chan *proto_gen.Message, 10)
+		stream := make(chan *proto_gen.Message, 10)
+		uc.msgStream[chatID] = stream
+
+		_ = uc.broker.Subscribe(chatID, func(msg *proto_gen.Message) {
+			select {
+			case stream <- msg:
+			default:
+				uc.log.Warn("Канал переполнен", zap.Int64("chat_id", chatID))
+			}
+		})
 	}
 
 	return uc.msgStream[chatID]

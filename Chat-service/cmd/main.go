@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"chat-grpc/Auth-service/interceptor"
+	"chat-grpc/Chat-service/internal/broker"
 	"chat-grpc/Chat-service/internal/handler"
 	"chat-grpc/Chat-service/internal/repository"
 	"chat-grpc/Chat-service/internal/usecase"
@@ -30,16 +31,22 @@ func main() {
 	}
 	defer db.Close()
 
+	broker, err := broker.NewNatsBroker(cfg.NatsUrl)
+	if err != nil {
+		log.Fatal("failed to connect to NATS", zap.Error(err))
+	}
+	defer broker.Close()
+
 	chatRepo := repository.NewChatRepository(db, log)
-	chatUseCase := usecase.NewChatUseCase(chatRepo, log)
+	chatUseCase := usecase.NewChatUseCase(chatRepo, log, broker)
 	chatHandler := handler.NewChatService(chatUseCase, log)
 
-	listener, err := net.Listen("tcp", ":"+cfg.SERVER_PORT_CHAT)
+	listener, err := net.Listen("tcp", ":"+cfg.ServerPortChat)
 	if err != nil {
 		log.Fatal("Failed to listen", zap.Error(err))
 	}
 
-	conn, err := grpc.NewClient(cfg.AUTH_SERVICE_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.AuthServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("Failed to connect to auth service", zap.Error(err))
 	}
@@ -55,7 +62,7 @@ func main() {
 	)
 	proto_gen.RegisterChatServiceServer(grpcServer, chatHandler)
 
-	log.Info("Chat Service is running on ", zap.String("port", cfg.SERVER_PORT_CHAT))
+	log.Info("Chat Service is running on ", zap.String("port", cfg.ServerPortChat))
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatal("Failed to serve", zap.Error(err))
 	}
