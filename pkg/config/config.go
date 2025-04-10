@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	AUTH_SERVICE_ADDR    string
-	SERVER_PORT_AUTH     string
-	SERVER_PORT_CHAT     string
+	AuthServiceAddr      string
+	ServerPortAuth       string
+	ServerPortChat       string
+	NatsUrl              string
 	DBHost               string
 	DBPort               string
 	DBUser               string
@@ -23,10 +24,11 @@ type Config struct {
 
 func LoadConfig() *Config {
 	return &Config{
-		AUTH_SERVICE_ADDR:    getEnv("AUTH_SERVICE_ADDR", "auth-service:50051"),
-		SERVER_PORT_AUTH:     getEnv("SERVER_PORT_AUTH", "50051"),
-		SERVER_PORT_CHAT:     getEnv("SERVER_PORT_CHAT", "50052"),
+		AuthServiceAddr:      getEnv("AUTH_SERVICE_ADDR", "auth-service:50051"),
+		ServerPortAuth:       getEnv("SERVER_PORT_AUTH", "50051"),
+		ServerPortChat:       getEnv("SERVER_PORT_CHAT", "50052"),
 		DBHost:               getEnv("DB_HOST", "localhost"),
+		NatsUrl:              getEnv("NATS_URL", "nats://nats:4222"),
 		DBPort:               getEnv("DB_PORT", "5432"),
 		DBUser:               getEnv("DB_USER", "auth_user"),
 		DBPassword:           getEnv("DB_PASSWORD", "auth_pass"),

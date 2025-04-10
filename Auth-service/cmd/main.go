@@ -25,7 +25,7 @@ func main() {
 	}
 	defer log.Sync()
 
-	listener, err := net.Listen("tcp", ":"+cfg.SERVER_PORT_AUTH)
+	listener, err := net.Listen("tcp", ":"+cfg.ServerPortAuth)
 	if err != nil {
 		log.Fatal("Failed to serve gRPC server", zap.Error(err))
 	}
@@ -44,7 +44,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	proto_gen.RegisterAuthServiceServer(grpcServer, handler)
 
-	log.Info("gRPC Auth Service is running on ", zap.String("port", cfg.SERVER_PORT_AUTH))
+	log.Info("gRPC Auth Service is running on ", zap.String("port", cfg.ServerPortAuth))
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatal("Failed to serve: %v", zap.Error(err))
 	}
