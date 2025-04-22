@@ -52,8 +52,8 @@ func (s *AuthService) CreateUser(name, email, password string, role entity.Role)
 	return userID, nil
 }
 
-func (s *AuthService) Login(username, pass string) (string, error) {
-	user, err := s.repo.GetUserByUsernameAndValidatePassword(username, pass)
+func (s *AuthService) Login(email, pass string) (string, error) {
+	user, err := s.repo.GetUserByUsernameAndValidatePassword(email, pass)
 	if err != nil {
 		s.log.Error("Login failed", zap.Error(err))
 		return "", err
@@ -70,7 +70,7 @@ func (s *AuthService) Login(username, pass string) (string, error) {
 		return "", err
 	}
 
-	s.log.Info("User logged in successfully", zap.String("username", username))
+	s.log.Info("User logged in successfully", zap.String("email", email))
 	return refreshToken, nil
 }
 

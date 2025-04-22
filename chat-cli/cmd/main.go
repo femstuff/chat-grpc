@@ -89,7 +89,7 @@ func main() {
 			}
 		case "login":
 			if len(args) < 3 {
-				fmt.Println("Формат: login <username> <password>")
+				fmt.Println("Формат: login <email> <password>")
 				continue
 			}
 			err := login(args[1], args[2])
@@ -176,12 +176,12 @@ func registerUser(name, email, password, roleStr string) error {
 	return nil
 }
 
-func login(username, password string) error {
+func login(email, password string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	resp, err := authClient.Login(ctx, &proto_gen.LoginRequest{
-		Username: username,
+		Email:    email,
 		Password: password,
 	})
 	if err != nil {

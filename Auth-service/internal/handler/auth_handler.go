@@ -32,7 +32,7 @@ func (h *AuthHandler) Create(ctx context.Context, req *proto_gen.CreateUserReque
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *proto_gen.LoginRequest) (*proto_gen.LoginResponse, error) {
-	refreshToken, err := h.usecase.Login(req.Username, req.Password)
+	refreshToken, err := h.usecase.Login(req.Email, req.Password)
 	if err != nil {
 		return nil, err
 	}
