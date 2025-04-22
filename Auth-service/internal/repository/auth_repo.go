@@ -181,21 +181,21 @@ func (a *AuthRepo) GetUserByUsername(username string) (*entity.User, error) {
 	return &user, nil
 }
 
-func (a *AuthRepo) GetUserByUsernameAndValidatePassword(username, pass string) (*entity.User, error) {
-	a.log.Info("Login attempt", zap.String("username", username))
+func (a *AuthRepo) GetUserByUsernameAndValidatePassword(email, pass string) (*entity.User, error) {
+	a.log.Info("Login attempt", zap.String("email", email))
 
 	var user entity.User
 	var roleStr string
 
-	query := `SELECT id, name, password_hash, role FROM users WHERE name = $1`
-	err := a.db.QueryRow(query, username).Scan(&user.ID, &user.Name, &user.Password, &roleStr)
+	query := `SELECT id, email, password_hash, role FROM users WHERE email = $1`
+	err := a.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.Password, &roleStr)
 	if err != nil {
 		a.log.Error("Failed to scan user", zap.Error(err))
 		return nil, errors.New("incorrect login or password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass)); err != nil {
-		a.log.Error("Auth fail", zap.String("username", username))
+		a.log.Error("Auth fail", zap.String("email", email))
 		return nil, errors.New("incorrect login or password")
 	}
 

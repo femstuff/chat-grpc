@@ -12,6 +12,7 @@ import (
 	"chat-grpc/pkg/config"
 	"chat-grpc/pkg/logger"
 	"chat-grpc/proto_gen"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
