@@ -20,7 +20,8 @@ clean:
 	docker system prune -f
 
 migrate-up:
-	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -path=/migrations -database "postgres://auth_user:auth_pass@localhost:5432/auth_db?sslmode=disable" up
+	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://auth_user:auth_pass@localhost:5432/auth_db?sslmode=disable" up
+	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://user:user_pass@localhost:5433/users_db?sslmode=disable" up
 
 migrate-down:
 	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://auth_user:auth_pass@localhost:5432/auth_db?sslmode=disable" down
