@@ -47,8 +47,7 @@ func NewDbUsers(log *zap.Logger) (*sql.DB, error) {
 		return nil, fmt.Errorf("error connect to db users")
 	}
 
-	err = db.Ping()
-	if err != nil {
+	if err = db.Ping(); err != nil {
 		log.Error("Failed pinging users db")
 		return nil, fmt.Errorf("error pingigng users db")
 	}
