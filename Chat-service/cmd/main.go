@@ -25,7 +25,7 @@ func main() {
 	}
 	defer log.Sync()
 
-	db, err := pkg.NewDb(log)
+	db, err := pkg.NewDbChat(log)
 	if err != nil {
 		log.Fatal("Database conn failed", zap.Error(err))
 	}

@@ -14,9 +14,13 @@ type Config struct {
 	NatsUrl              string
 	DBHost               string
 	DBPort               string
+	DBPortUsers          string
 	DBUser               string
+	DBUserUsers          string
 	DBPassword           string
+	DBPasswordUsers      string
 	DBName               string
+	DBNameUsers          string
 	JWTSecret            string
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
@@ -30,9 +34,13 @@ func LoadConfig() *Config {
 		DBHost:               getEnv("DB_HOST", "localhost"),
 		NatsUrl:              getEnv("NATS_URL", "nats://nats:4222"),
 		DBPort:               getEnv("DB_PORT", "5432"),
+		DBPortUsers:          getEnv("DB_PORT_USERS", "5433"),
 		DBUser:               getEnv("DB_USER", "auth_user"),
+		DBUserUsers:          getEnv("DB_USER_USERS", "user"),
 		DBPassword:           getEnv("DB_PASSWORD", "auth_pass"),
+		DBPasswordUsers:      getEnv("DB_PASSWORD_USERS", "user_pass"),
 		DBName:               getEnv("DB_NAME", "auth_db"),
+		DBNameUsers:          getEnv("DB_NAME_USERS", "users_db"),
 		JWTSecret:            getEnv("JWT_SECRET", "default_key"),
 		AccessTokenDuration:  getEnvAsDuration("ACCESS_TOKEN_DURATION", time.Minute*15),
 		RefreshTokenDuration: getEnvAsDuration("REFRESH_TOKEN_DURATION", time.Hour*24),
