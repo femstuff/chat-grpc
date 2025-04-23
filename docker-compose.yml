@@ -1,8 +1,9 @@
 version: "3.8"
 
 services:
-  postgres:
+  auth-db:
     image: postgres:latest
+    container_name: auth-db
     environment:
       POSTGRES_USER: auth_user
       POSTGRES_PASSWORD: auth_pass
@@ -10,9 +11,26 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - auth_db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-db:
+    image: postgres:latest
+    container_name: user-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user_pass
+      POSTGRES_DB: user_db
+    ports:
+      - "5433:5433"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d user_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,17 +42,17 @@ services:
     ports:
       - "50051:50051"
     environment:
-      DB_HOST: postgres
+      DB_HOST: user-db
       DB_PORT: 5432
-      DB_USER: auth_user
-      DB_PASSWORD: auth_pass
-      DB_NAME: auth_db
+      DB_USER: user
+      DB_PASSWORD: user_pass
+      DB_NAME: user_db
       JWT_SECRET: secret_key
       SERVER_PORT_AUTH: 50051
       ACCESS_TOKEN_DURATION: 900
       REFRESH_TOKEN_DURATION: 86400
     depends_on:
-      postgres:
+      user-db:
         condition: service_healthy
 
   chat-service:
@@ -44,7 +62,7 @@ services:
     ports:
       - "50052:50052"
     environment:
-      DB_HOST: postgres
+      DB_HOST: auth-db
       DB_PORT: 5432
       DB_USER: auth_user
       DB_PASSWORD: auth_pass
@@ -53,9 +71,12 @@ services:
       SERVER_PORT_CHAT: 50052
       NATS_URL: nats://nats:4222
     depends_on:
-      - postgres
-      - auth-service
-      - nats
+      auth-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      nats:
+        condition: service_started
 
   nats:
     image: nats:latest
@@ -71,4 +92,5 @@ services:
     network_mode: host
 
 volumes:
-  postgres_data:
+  auth_db_data:
+  user_db_data:

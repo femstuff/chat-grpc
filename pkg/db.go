@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewDb(log *zap.Logger) (*sql.DB, error) {
+func NewDbChat(log *zap.Logger) (*sql.DB, error) {
 	cfg := config.LoadConfig()
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -30,5 +30,29 @@ func NewDb(log *zap.Logger) (*sql.DB, error) {
 	}
 
 	log.Info("Connected to DB successfully")
+	return db, nil
+}
+
+func NewDbUsers(log *zap.Logger) (*sql.DB, error) {
+	cfg := config.LoadConfig()
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DBHost, cfg.DBPortUsers, cfg.DBUserUsers, cfg.DBPasswordUsers, cfg.DBNameUsers)
+	log.Info("Connecting to db users")
+
+	db, err := sql.Open("postgres", connStr)
+
+	if err != nil {
+		log.Error("Failed connecting to db users", zap.Error(err))
+		return nil, fmt.Errorf("error connect to db users")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Error("Failed pinging users db")
+		return nil, fmt.Errorf("error pingigng users db")
+	}
+
+	log.Info("Connected to DB users successfully")
 	return db, nil
 }
