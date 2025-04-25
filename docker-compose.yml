@@ -42,7 +42,7 @@ services:
     ports:
       - "50051:50051"
     environment:
-      DB_HOST: users-db
+      DB_HOST_USERS: users-db
       DB_PORT_USERS: 5432
       DB_USER_USERS: user
       DB_PASSWORD_USERS: user_pass
@@ -62,22 +62,41 @@ services:
     ports:
       - "50052:50052"
     environment:
+      SERVER_PORT_CHAT: 50052
+      AUTH_SERVICE_ADDR: auth-service:50051
+      NATS_URL: nats://nats:4222
+
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_USER: auth_user
       DB_PASSWORD: auth_pass
       DB_NAME: auth_db
-      AUTH_SERVICE_ADDR: auth-service:50051
-      SERVER_PORT_CHAT: 50052
-      NATS_URL: nats://nats:4222
+
+      DB_HOST_USERS: users-db
+      DB_PORT_USERS: 5432
+      DB_USER_USERS: user
+      DB_PASSWORD_USERS: user_pass
+      DB_NAME_USERS: users_db
     depends_on:
       auth-db:
+        condition: service_healthy
+      users-db:
         condition: service_healthy
       auth-service:
         condition: service_started
       nats:
         condition: service_started
 
+  notification-service:
+    build:
+        context: .
+        dockerfile: Notification-service/Dockerfile
+    environment:
+      SMTP_USER: test@gmail.com
+      SMTP_PASSWORD: test_password
+    depends_on:
+      - nats
+      
   nats:
     image: nats:latest
     ports:

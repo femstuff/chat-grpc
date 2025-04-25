@@ -13,6 +13,7 @@ type Config struct {
 	ServerPortChat       string
 	NatsUrl              string
 	DBHost               string
+	DBHostUsers          string
 	DBPort               string
 	DBPortUsers          string
 	DBUser               string
@@ -28,19 +29,23 @@ type Config struct {
 
 func LoadConfig() *Config {
 	return &Config{
-		AuthServiceAddr:      getEnv("AUTH_SERVICE_ADDR", "auth-service:50051"),
-		ServerPortAuth:       getEnv("SERVER_PORT_AUTH", "50051"),
-		ServerPortChat:       getEnv("SERVER_PORT_CHAT", "50052"),
-		DBHost:               getEnv("DB_HOST", "localhost"),
-		NatsUrl:              getEnv("NATS_URL", "nats://nats:4222"),
-		DBPort:               getEnv("DB_PORT", "5432"),
-		DBPortUsers:          getEnv("DB_PORT_USERS", "5433"),
-		DBUser:               getEnv("DB_USER", "auth_user"),
-		DBUserUsers:          getEnv("DB_USER_USERS", "user"),
-		DBPassword:           getEnv("DB_PASSWORD", "auth_pass"),
-		DBPasswordUsers:      getEnv("DB_PASSWORD_USERS", "user_pass"),
-		DBName:               getEnv("DB_NAME", "auth_db"),
-		DBNameUsers:          getEnv("DB_NAME_USERS", "users_db"),
+		AuthServiceAddr: getEnv("AUTH_SERVICE_ADDR", "auth-service:50051"),
+		ServerPortAuth:  getEnv("SERVER_PORT_AUTH", "50051"),
+		ServerPortChat:  getEnv("SERVER_PORT_CHAT", "50052"),
+		NatsUrl:         getEnv("NATS_URL", "nats://nats:4222"),
+
+		DBHost:     getEnv("DB_HOST", "localhost"),
+		DBPort:     getEnv("DB_PORT", "5432"),
+		DBUser:     getEnv("DB_USER", "auth_user"),
+		DBPassword: getEnv("DB_PASSWORD", "auth_pass"),
+		DBName:     getEnv("DB_NAME", "auth_db"),
+
+		DBHostUsers:     getEnv("DB_HOST_USERS", "localhost"),
+		DBPortUsers:     getEnv("DB_PORT_USERS", "5432"),
+		DBUserUsers:     getEnv("DB_USER_USERS", "user"),
+		DBPasswordUsers: getEnv("DB_PASSWORD_USERS", "user_pass"),
+		DBNameUsers:     getEnv("DB_NAME_USERS", "users_db"),
+
 		JWTSecret:            getEnv("JWT_SECRET", "default_key"),
 		AccessTokenDuration:  getEnvAsDuration("ACCESS_TOKEN_DURATION", time.Minute*15),
 		RefreshTokenDuration: getEnvAsDuration("REFRESH_TOKEN_DURATION", time.Hour*24),
