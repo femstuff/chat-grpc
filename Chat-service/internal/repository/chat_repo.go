@@ -21,12 +21,13 @@ type ChatRepo interface {
 }
 
 type chatRepository struct {
-	db  *sql.DB
-	log *zap.Logger
+	db      *sql.DB
+	dbUsers *sql.DB
+	log     *zap.Logger
 }
 
-func NewChatRepository(db *sql.DB, log *zap.Logger) ChatRepo {
-	return &chatRepository{db: db, log: log}
+func NewChatRepository(db *sql.DB, dbUsers *sql.DB, log *zap.Logger) ChatRepo {
+	return &chatRepository{db: db, dbUsers: dbUsers, log: log}
 }
 
 func (r *chatRepository) CreateChat(usernames []string) (int64, error) {
@@ -42,7 +43,7 @@ func (r *chatRepository) CreateChat(usernames []string) (int64, error) {
 
 	for _, username := range usernames {
 		var userID int64
-		err := r.db.QueryRow("SELECT id FROM users WHERE name = $1", username).Scan(&userID)
+		err := r.dbUsers.QueryRow("SELECT id FROM users WHERE name = $1", username).Scan(&userID)
 		if err != nil {
 			r.log.Error("User not found", zap.String("username", username), zap.Error(err))
 			return 0, fmt.Errorf("user %s not found: %w", username, err)

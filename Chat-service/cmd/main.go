@@ -31,13 +31,19 @@ func main() {
 	}
 	defer db.Close()
 
+	dbUsers, err := pkg.NewDbUsers(log)
+	if err != nil {
+		log.Fatal("Database conn users failed", zap.Error(err))
+	}
+	defer dbUsers.Close()
+
 	broker, err := broker.NewNatsBroker(cfg.NatsUrl)
 	if err != nil {
 		log.Fatal("failed to connect to NATS", zap.Error(err))
 	}
 	defer broker.Close()
 
-	chatRepo := repository.NewChatRepository(db, log)
+	chatRepo := repository.NewChatRepository(db, dbUsers, log)
 	chatUseCase := usecase.NewChatUseCase(chatRepo, log, broker)
 	chatHandler := handler.NewChatService(chatUseCase, log)
 
