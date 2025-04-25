@@ -90,7 +90,7 @@ func (r *chatRepository) SendMessage(chatID int64, username, text string, timest
 	}
 
 	var userID int64
-	err := r.db.QueryRow("SELECT id FROM users WHERE name = $1", username).Scan(&userID)
+	err := r.dbUsers.QueryRow("SELECT id FROM users WHERE name = $1", username).Scan(&userID)
 	if err != nil {
 		r.log.Error("User not found", zap.String("username", username), zap.Error(err))
 		return "", err
