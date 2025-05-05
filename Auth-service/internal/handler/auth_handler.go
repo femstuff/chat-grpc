@@ -129,3 +129,13 @@ func (h *AuthHandler) CheckToken(ctx context.Context, req *proto_gen.CheckTokenR
 
 	return &proto_gen.AuthEmpty{}, nil
 }
+
+func (h *AuthHandler) GetChatUsersEmails(ctx context.Context, req *proto_gen.GetChatUsersEmailsRequest) (*proto_gen.GetChatUsersEmailsResponse, error) {
+	emails, err := h.usecase.GetChatUsersEmails(req.ChatId)
+	if err != nil {
+		h.log.Error("failed to get chat users emails", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to get emails: %v", err)
+	}
+
+	return &proto_gen.GetChatUsersEmailsResponse{Emails: emails}, nil
+}
