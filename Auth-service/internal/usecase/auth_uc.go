@@ -185,3 +185,7 @@ func (s *AuthService) CheckToken(accessToken string) error {
 	s.log.Info("Access token is valid")
 	return nil
 }
+
+func (s *AuthService) GetChatUsersEmails(chatID int64) ([]string, error) {
+	return s.repo.GetChatUsersEmails(chatID)
+}

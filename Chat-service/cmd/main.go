@@ -60,7 +60,7 @@ func main() {
 
 	log.Info("Successfully connected to auth service")
 
-	authClient := interceptor.NewAuthClient(conn)
+	authClient := interceptor.NewAuthClient(conn, log)
 	authInterceptor := interceptor.NewAuthInterceptor(authClient, log)
 
 	grpcServer := grpc.NewServer(

@@ -22,6 +22,10 @@ type Config struct {
 	DBPasswordUsers      string
 	DBName               string
 	DBNameUsers          string
+	SmtpUser             string
+	SmtpPass             string
+	SmtpHost             string
+	SmtpPort             string
 	JWTSecret            string
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
@@ -45,6 +49,11 @@ func LoadConfig() *Config {
 		DBUserUsers:     getEnv("DB_USER_USERS", "user"),
 		DBPasswordUsers: getEnv("DB_PASSWORD_USERS", "user_pass"),
 		DBNameUsers:     getEnv("DB_NAME_USERS", "users_db"),
+
+		SmtpHost: getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SmtpPort: getEnv("SMTP_PORT", "587"),
+		SmtpUser: getEnv("SMTP_USER", "user@gmail.com"),
+		SmtpPass: getEnv("SMTP_PASS", "pass-user"),
 
 		JWTSecret:            getEnv("JWT_SECRET", "default_key"),
 		AccessTokenDuration:  getEnvAsDuration("ACCESS_TOKEN_DURATION", time.Minute*15),

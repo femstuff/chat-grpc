@@ -17,6 +17,8 @@ service AuthService {
   rpc GetAccessToken(AccessTokenRequest) returns (AccessTokenResponse);
   rpc Check(CheckAccessRequest) returns (AuthEmpty);
   rpc CheckToken(CheckTokenRequest) returns (AuthEmpty);
+  rpc GetUsersEmails(GetUsersEmailsRequest) returns (GetUsersEmailsResponse);
+  rpc GetChatUsers(GetChatUsersRequest) returns (GetChatUsersResponse);
 }
 
 message AuthEmpty {}
@@ -95,4 +97,20 @@ message CheckTokenRequest {
 enum Role {
   UserRole = 0;
   AdminRole = 1;
+}
+
+message GetUsersEmailsRequest {
+  repeated int64 user_ids = 1;
+}
+
+message GetUsersEmailsResponse {
+  repeated string emails = 1;
+}
+
+message GetChatUsersRequest {
+  int64 chat_id = 1;
+}
+
+message GetChatUsersResponse {
+  repeated int64 user_ids = 1;
 }

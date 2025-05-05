@@ -19,16 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Create_FullMethodName          = "/auth.AuthService/Create"
-	AuthService_Get_FullMethodName             = "/auth.AuthService/Get"
-	AuthService_GetList_FullMethodName         = "/auth.AuthService/GetList"
-	AuthService_Update_FullMethodName          = "/auth.AuthService/Update"
-	AuthService_Delete_FullMethodName          = "/auth.AuthService/Delete"
-	AuthService_Login_FullMethodName           = "/auth.AuthService/Login"
-	AuthService_GetRefreshToken_FullMethodName = "/auth.AuthService/GetRefreshToken"
-	AuthService_GetAccessToken_FullMethodName  = "/auth.AuthService/GetAccessToken"
-	AuthService_Check_FullMethodName           = "/auth.AuthService/Check"
-	AuthService_CheckToken_FullMethodName      = "/auth.AuthService/CheckToken"
+	AuthService_Create_FullMethodName             = "/auth.AuthService/Create"
+	AuthService_Get_FullMethodName                = "/auth.AuthService/Get"
+	AuthService_GetList_FullMethodName            = "/auth.AuthService/GetList"
+	AuthService_Update_FullMethodName             = "/auth.AuthService/Update"
+	AuthService_Delete_FullMethodName             = "/auth.AuthService/Delete"
+	AuthService_Login_FullMethodName              = "/auth.AuthService/Login"
+	AuthService_GetRefreshToken_FullMethodName    = "/auth.AuthService/GetRefreshToken"
+	AuthService_GetAccessToken_FullMethodName     = "/auth.AuthService/GetAccessToken"
+	AuthService_Check_FullMethodName              = "/auth.AuthService/Check"
+	AuthService_CheckToken_FullMethodName         = "/auth.AuthService/CheckToken"
+	AuthService_GetChatUsersEmails_FullMethodName = "/auth.AuthService/GetChatUsersEmails"
+	AuthService_GetChatUsers_FullMethodName       = "/auth.AuthService/GetChatUsers"
+	AuthService_GetUsersEmailsByID_FullMethodName = "/auth.AuthService/GetUsersEmailsByID"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -45,6 +48,9 @@ type AuthServiceClient interface {
 	GetAccessToken(ctx context.Context, in *AccessTokenRequest, opts ...grpc.CallOption) (*AccessTokenResponse, error)
 	Check(ctx context.Context, in *CheckAccessRequest, opts ...grpc.CallOption) (*AuthEmpty, error)
 	CheckToken(ctx context.Context, in *CheckTokenRequest, opts ...grpc.CallOption) (*AuthEmpty, error)
+	GetChatUsersEmails(ctx context.Context, in *GetChatUsersEmailsRequest, opts ...grpc.CallOption) (*GetChatUsersEmailsResponse, error)
+	GetChatUsers(ctx context.Context, in *GetChatUsersRequest, opts ...grpc.CallOption) (*GetChatUsersResponse, error)
+	GetUsersEmailsByID(ctx context.Context, in *GetUsersEmailsByIDRequest, opts ...grpc.CallOption) (*GetUsersEmailsByIDResponse, error)
 }
 
 type authServiceClient struct {
@@ -155,6 +161,36 @@ func (c *authServiceClient) CheckToken(ctx context.Context, in *CheckTokenReques
 	return out, nil
 }
 
+func (c *authServiceClient) GetChatUsersEmails(ctx context.Context, in *GetChatUsersEmailsRequest, opts ...grpc.CallOption) (*GetChatUsersEmailsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetChatUsersEmailsResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetChatUsersEmails_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetChatUsers(ctx context.Context, in *GetChatUsersRequest, opts ...grpc.CallOption) (*GetChatUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetChatUsersResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetChatUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetUsersEmailsByID(ctx context.Context, in *GetUsersEmailsByIDRequest, opts ...grpc.CallOption) (*GetUsersEmailsByIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUsersEmailsByIDResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetUsersEmailsByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -169,6 +205,9 @@ type AuthServiceServer interface {
 	GetAccessToken(context.Context, *AccessTokenRequest) (*AccessTokenResponse, error)
 	Check(context.Context, *CheckAccessRequest) (*AuthEmpty, error)
 	CheckToken(context.Context, *CheckTokenRequest) (*AuthEmpty, error)
+	GetChatUsersEmails(context.Context, *GetChatUsersEmailsRequest) (*GetChatUsersEmailsResponse, error)
+	GetChatUsers(context.Context, *GetChatUsersRequest) (*GetChatUsersResponse, error)
+	GetUsersEmailsByID(context.Context, *GetUsersEmailsByIDRequest) (*GetUsersEmailsByIDResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -208,6 +247,15 @@ func (UnimplementedAuthServiceServer) Check(context.Context, *CheckAccessRequest
 }
 func (UnimplementedAuthServiceServer) CheckToken(context.Context, *CheckTokenRequest) (*AuthEmpty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckToken not implemented")
+}
+func (UnimplementedAuthServiceServer) GetChatUsersEmails(context.Context, *GetChatUsersEmailsRequest) (*GetChatUsersEmailsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChatUsersEmails not implemented")
+}
+func (UnimplementedAuthServiceServer) GetChatUsers(context.Context, *GetChatUsersRequest) (*GetChatUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChatUsers not implemented")
+}
+func (UnimplementedAuthServiceServer) GetUsersEmailsByID(context.Context, *GetUsersEmailsByIDRequest) (*GetUsersEmailsByIDResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUsersEmailsByID not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -410,6 +458,60 @@ func _AuthService_CheckToken_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetChatUsersEmails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatUsersEmailsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetChatUsersEmails(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetChatUsersEmails_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetChatUsersEmails(ctx, req.(*GetChatUsersEmailsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetChatUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChatUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetChatUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetChatUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetChatUsers(ctx, req.(*GetChatUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetUsersEmailsByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersEmailsByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetUsersEmailsByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetUsersEmailsByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetUsersEmailsByID(ctx, req.(*GetUsersEmailsByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +558,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckToken",
 			Handler:    _AuthService_CheckToken_Handler,
+		},
+		{
+			MethodName: "GetChatUsersEmails",
+			Handler:    _AuthService_GetChatUsersEmails_Handler,
+		},
+		{
+			MethodName: "GetChatUsers",
+			Handler:    _AuthService_GetChatUsers_Handler,
+		},
+		{
+			MethodName: "GetUsersEmailsByID",
+			Handler:    _AuthService_GetUsersEmailsByID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

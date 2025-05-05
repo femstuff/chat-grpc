@@ -30,13 +30,17 @@ func main() {
 		log.Fatal("Failed to serve gRPC server", zap.Error(err))
 	}
 
-	db, err := pkg.NewDbUsers(log)
+	dbUser, err := pkg.NewDbUsers(log)
 	if err != nil {
 		log.Fatal("Database conn failed", zap.Error(err))
 	}
-	defer db.Close()
-
-	repo := repository.NewAuthRepository(db, log)
+	defer dbUser.Close()
+	dbAuth, err := pkg.NewDbChat(log)
+	if err != nil {
+		log.Fatal("database chat conn failes", zap.Error(err))
+	}
+	
+	repo := repository.NewAuthRepository(dbUser, dbAuth, log)
 	jwt := jwt.NewJWTService("key", 15*time.Minute, log)
 	usecase := usecase.NewAuthService(repo, jwt, log)
 	handler := handler.NewAuthHandler(usecase, log)
