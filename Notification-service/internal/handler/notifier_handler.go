@@ -26,6 +26,8 @@ func NewEmailSender(from, pass, smtpHost, smtpPort string, log *zap.Logger) *Ema
 }
 
 func (s *EmailSender) Send(to, subject, body string) error {
+	s.log.Info("Email sent attempt", zap.String("to", to))
+
 	msg := fmt.Sprintf("From: %s\nTo: %s\nSubject: %s\n\n%s", s.from, to, subject, body)
 	auth := smtp.PlainAuth("", s.from, s.password, s.smtpHost)
 	err := smtp.SendMail(s.smtpHost+":"+s.smtpPort, auth, s.from, []string{to}, []byte(msg))
