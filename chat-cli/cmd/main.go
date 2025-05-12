@@ -53,6 +53,13 @@ func main() {
 	defer chatConn.Close()
 	chatClient = proto_gen.NewChatServiceClient(chatConn)
 
+	sagaConn, err := grpc.NewClient("localhost:"+cfg.SagaPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal("Failed to connect to saga", zap.Error(err))
+	}
+	defer sagaConn.Close()
+	sagaClient := proto_gen.NewSagaServiceClient(sagaConn)
+
 	fmt.Println("Добро пожаловать в gRPC-чат!")
 	fmt.Println("Команды:")
 	fmt.Println("  register <name> <email> <password> <role> - Создать пользователя")
@@ -124,9 +131,31 @@ func main() {
 				log.Warn("Invalid chat ID", zap.String("input", args[1]))
 				continue
 			}
-			err = sendMessage(chatID, args[2], strings.Join(args[3:], " "))
+			//err = sendMessage(chatID, args[2], strings.Join(args[3:], " "))
+
+			log.Info("Sending message via saga", zap.Int64("chat_id", chatID), zap.String("from", args[2]))
+
+			ctx := authContext()
+
+			emailResp, err := authClient.GetChatUsersEmails(ctx, &proto_gen.GetChatUsersEmailsRequest{
+				ChatId: chatID,
+			})
 			if err != nil {
-				log.Error("Failed to send message", zap.Error(err))
+				log.Error("Failed to get emails from auth service", zap.Error(err))
+				fmt.Println("Ошибка получения email'ов участников чата:", err)
+				continue
+			}
+
+			_, err = sagaClient.StartSaga(ctx, &proto_gen.StartSagaRequest{
+				MessageId: chatID,
+				Text:      strings.Join(args[3:], " "),
+				Emails:    emailResp.Emails,
+			})
+			if err != nil {
+				log.Error("Failed to send message saga", zap.Error(err))
+				fmt.Println("Ошибка отправки сообщения:", err)
+			} else {
+				fmt.Println("Сообщение отправлено через сагу")
 			}
 
 		case "connect":

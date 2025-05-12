@@ -16,11 +16,11 @@ type AuthClientInterface interface {
 
 type Notifier struct {
 	authClient  interceptor.AuthClientInterface
-	emailSender *handler.EmailSender
+	emailSender *handler.StubEmailSender
 	log         *zap.Logger
 }
 
-func NewNotifier(authClient interceptor.AuthClientInterface, emailSender *handler.EmailSender, log *zap.Logger) *Notifier {
+func NewNotifier(authClient interceptor.AuthClientInterface, emailSender *handler.StubEmailSender, log *zap.Logger) *Notifier {
 	return &Notifier{
 		authClient:  authClient,
 		emailSender: emailSender,

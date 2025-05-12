@@ -12,6 +12,7 @@ service ChatService {
   rpc SendMessage(SendMessageRequest) returns (ChatEmpty);
   rpc Connect(ConnectRequest) returns (stream Message);
   rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+  rpc CancelSendMessage(CancelSendMessageRequest) returns (ChatEmpty);
 }
 
 message ChatEmpty {}
@@ -52,4 +53,8 @@ message GetMessagesRequest {
 
 message GetMessagesResponse {
   repeated Message messages = 1;
+}
+
+message CancelSendMessageRequest {
+  int64 message_id = 1;
 }

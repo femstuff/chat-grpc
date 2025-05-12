@@ -15,7 +15,7 @@ func NewDbChat(log *zap.Logger) (*sql.DB, error) {
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName,
 	)
-	log.Info("Connecting to user DB", zap.String("connStr", connStr))
+	log.Info("Connecting to chat DB", zap.String("connStr", connStr))
 
 	db, err := sql.Open("postgres", connStr)
 
