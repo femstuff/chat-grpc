@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package notification;
+
+option go_package = "/proto_gen";
+
+import "google/protobuf/empty.proto";
+
+service NotificationService {
+  rpc SendEmail(SendEmailRequest) returns (google.protobuf.Empty);
+}
+
+message SendEmailRequest {
+  string to = 1;
+  string subject = 2;
+  string body = 3;
+}

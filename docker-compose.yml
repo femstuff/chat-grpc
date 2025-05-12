@@ -98,6 +98,8 @@ services:
       context: .
       dockerfile: Notification-service/Dockerfile
     container_name: notification-service
+    ports:
+      - "50054:50054"
     depends_on:
       - nats
     environment:
@@ -116,6 +118,32 @@ services:
     depends_on:
       - chat-service
     network_mode: host
+
+  saga-orchestrator:
+    build:
+      context: .
+      dockerfile: Saga-orchestrator/Dockerfile
+    container_name: saga-orchestrator
+    ports:
+      - "50053:50053"
+    environment:
+      SAGA_PORT: 50053
+      NOTIFICATION_SERVICE_ADDR: notification-service:50054
+      NATS_URL: nats://nats:4222
+
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_USER: auth_user
+      DB_PASSWORD: auth_pass
+      DB_NAME: auth_db
+
+      DB_HOST_USERS: users-db
+      DB_PORT_USERS: 5432
+      DB_USER_USERS: user
+      DB_PASSWORD_USERS: user_pass
+      DB_NAME_USERS: users_db
+    depends_on:
+      - notification-service
 
 volumes:
   auth_db_data:

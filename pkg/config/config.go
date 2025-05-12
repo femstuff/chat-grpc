@@ -8,27 +8,30 @@ import (
 )
 
 type Config struct {
-	AuthServiceAddr      string
-	ServerPortAuth       string
-	ServerPortChat       string
-	NatsUrl              string
-	DBHost               string
-	DBHostUsers          string
-	DBPort               string
-	DBPortUsers          string
-	DBUser               string
-	DBUserUsers          string
-	DBPassword           string
-	DBPasswordUsers      string
-	DBName               string
-	DBNameUsers          string
-	SmtpUser             string
-	SmtpPass             string
-	SmtpHost             string
-	SmtpPort             string
-	JWTSecret            string
-	AccessTokenDuration  time.Duration
-	RefreshTokenDuration time.Duration
+	AuthServiceAddr         string
+	ServerPortAuth          string
+	ServerPortChat          string
+	NatsUrl                 string
+	DBHost                  string
+	DBHostUsers             string
+	DBPort                  string
+	DBPortUsers             string
+	DBUser                  string
+	DBUserUsers             string
+	DBPassword              string
+	DBPasswordUsers         string
+	DBName                  string
+	DBNameUsers             string
+	SmtpUser                string
+	SmtpPass                string
+	SmtpHost                string
+	SmtpPort                string
+	JWTSecret               string
+	AccessTokenDuration     time.Duration
+	RefreshTokenDuration    time.Duration
+	SagaPort                string
+	NotificationServiceAddr string
+	NotificationPort        string
 }
 
 func LoadConfig() *Config {
@@ -58,6 +61,10 @@ func LoadConfig() *Config {
 		JWTSecret:            getEnv("JWT_SECRET", "default_key"),
 		AccessTokenDuration:  getEnvAsDuration("ACCESS_TOKEN_DURATION", time.Minute*15),
 		RefreshTokenDuration: getEnvAsDuration("REFRESH_TOKEN_DURATION", time.Hour*24),
+
+		SagaPort:                getEnv("SAGA_PORT", "50053"),
+		NotificationPort:        getEnv("NOTIFICATION_PORT", "50054"),
+		NotificationServiceAddr: getEnv("NOTIFICATION_SERVICE_ADDR", "notification-service:50054"),
 	}
 }
 

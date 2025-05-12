@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_Create_FullMethodName      = "/chat.ChatService/Create"
-	ChatService_Delete_FullMethodName      = "/chat.ChatService/Delete"
-	ChatService_SendMessage_FullMethodName = "/chat.ChatService/SendMessage"
-	ChatService_Connect_FullMethodName     = "/chat.ChatService/Connect"
-	ChatService_GetMessages_FullMethodName = "/chat.ChatService/GetMessages"
+	ChatService_Create_FullMethodName            = "/chat.ChatService/Create"
+	ChatService_Delete_FullMethodName            = "/chat.ChatService/Delete"
+	ChatService_SendMessage_FullMethodName       = "/chat.ChatService/SendMessage"
+	ChatService_Connect_FullMethodName           = "/chat.ChatService/Connect"
+	ChatService_GetMessages_FullMethodName       = "/chat.ChatService/GetMessages"
+	ChatService_CancelSendMessage_FullMethodName = "/chat.ChatService/CancelSendMessage"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -35,6 +36,7 @@ type ChatServiceClient interface {
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*ChatEmpty, error)
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Message], error)
 	GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error)
+	CancelSendMessage(ctx context.Context, in *CancelSendMessageRequest, opts ...grpc.CallOption) (*ChatEmpty, error)
 }
 
 type chatServiceClient struct {
@@ -104,6 +106,16 @@ func (c *chatServiceClient) GetMessages(ctx context.Context, in *GetMessagesRequ
 	return out, nil
 }
 
+func (c *chatServiceClient) CancelSendMessage(ctx context.Context, in *CancelSendMessageRequest, opts ...grpc.CallOption) (*ChatEmpty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatEmpty)
+	err := c.cc.Invoke(ctx, ChatService_CancelSendMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
@@ -113,6 +125,7 @@ type ChatServiceServer interface {
 	SendMessage(context.Context, *SendMessageRequest) (*ChatEmpty, error)
 	Connect(*ConnectRequest, grpc.ServerStreamingServer[Message]) error
 	GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error)
+	CancelSendMessage(context.Context, *CancelSendMessageRequest) (*ChatEmpty, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -137,6 +150,9 @@ func (UnimplementedChatServiceServer) Connect(*ConnectRequest, grpc.ServerStream
 }
 func (UnimplementedChatServiceServer) GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMessages not implemented")
+}
+func (UnimplementedChatServiceServer) CancelSendMessage(context.Context, *CancelSendMessageRequest) (*ChatEmpty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CancelSendMessage not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -242,6 +258,24 @@ func _ChatService_GetMessages_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_CancelSendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelSendMessageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).CancelSendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_CancelSendMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).CancelSendMessage(ctx, req.(*CancelSendMessageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -264,6 +298,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMessages",
 			Handler:    _ChatService_GetMessages_Handler,
+		},
+		{
+			MethodName: "CancelSendMessage",
+			Handler:    _ChatService_CancelSendMessage_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

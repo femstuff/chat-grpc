@@ -1,41 +1,30 @@
 package handler
 
 import (
-	"fmt"
-	"net/smtp"
+	"context"
 
+	"chat-grpc/proto_gen"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-type EmailSender struct {
-	from     string
-	password string
-	smtpHost string
-	smtpPort string
-	log      *zap.Logger
+type NotificationHandler struct {
+	proto_gen.UnimplementedNotificationServiceServer
+	emailSender EmailSender
+	log         *zap.Logger
 }
 
-func NewEmailSender(from, pass, smtpHost, smtpPort string, log *zap.Logger) *EmailSender {
-	return &EmailSender{
-		from:     from,
-		password: pass,
-		smtpHost: smtpHost,
-		smtpPort: smtpPort,
-		log:      log,
-	}
+func NewNotificationHandler(emailSender EmailSender, log *zap.Logger) *NotificationHandler {
+	return &NotificationHandler{emailSender: emailSender, log: log}
 }
 
-func (s *EmailSender) Send(to, subject, body string) error {
-	s.log.Info("Email sent attempt", zap.String("to", to))
-
-	msg := fmt.Sprintf("From: %s\nTo: %s\nSubject: %s\n\n%s", s.from, to, subject, body)
-	auth := smtp.PlainAuth("", s.from, s.password, s.smtpHost)
-	err := smtp.SendMail(s.smtpHost+":"+s.smtpPort, auth, s.from, []string{to}, []byte(msg))
+func (h *NotificationHandler) SendEmail(ctx context.Context, req *proto_gen.SendEmailRequest) (*emptypb.Empty, error) {
+	err := h.emailSender.Send(req.To, req.Subject, req.Body)
 	if err != nil {
-		s.log.Error("Failed to send email", zap.Error(err))
-		return err
+		h.log.Error("Failed to send email", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "failed to send email: %v", err)
 	}
-
-	s.log.Info("email sent", zap.String("to", to))
-	return nil
+	return &emptypb.Empty{}, nil
 }
