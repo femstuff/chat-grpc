@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	"chat-grpc/Auth-service/interceptor"
 	"chat-grpc/Auth-service/internal/entity"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -17,7 +16,6 @@ type AuthRepo struct {
 	dbUser *sql.DB
 	dbAuth *sql.DB
 	log    *zap.Logger
-	client *interceptor.AuthClient
 }
 
 func NewAuthRepository(dbUser *sql.DB, dbAuth *sql.DB, log *zap.Logger) *AuthRepo {
@@ -45,16 +43,6 @@ func (a *AuthRepo) SaveRefreshToken(userID int64, token string) error {
 
 	a.log.Info("Success save refresh token")
 	return err
-}
-
-func hashPassword(password string, log *zap.Logger) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Error("Failed with hash password", zap.Error(err))
-		return "", err
-	}
-
-	return string(hash), nil
 }
 
 func (a *AuthRepo) CreateUser(name, email, password string, role entity.Role) (int64, error) {

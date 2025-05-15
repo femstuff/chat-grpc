@@ -1,0 +1,17 @@
+version: 2
+
+run:
+  timeout: 2m
+  skip-dirs:
+    - proto_gen
+
+linters:
+  enable:
+    - staticcheck
+    - revive
+    - errcheck
+    - unused
+    - govet
+
+issues:
+  exclude-use-default: false
