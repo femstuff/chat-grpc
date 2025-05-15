@@ -39,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal("database chat conn failes", zap.Error(err))
 	}
-	
+
 	repo := repository.NewAuthRepository(dbUser, dbAuth, log)
 	jwt := jwt.NewJWTService("key", 15*time.Minute, log)
 	usecase := usecase.NewAuthService(repo, jwt, log)

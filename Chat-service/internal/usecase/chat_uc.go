@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
 	"chat-grpc/Chat-service/internal/broker"
@@ -25,7 +24,6 @@ type ChatUseCaseInterface interface {
 type ChatUseCase struct {
 	repo   repository.ChatRepo
 	log    *zap.Logger
-	mu     sync.Mutex
 	broker broker.Broker
 }
 
