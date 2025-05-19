@@ -9,6 +9,9 @@ up:
 down:
 	docker-compose down
 
+cli:
+	docker-compose run --service-ports --rm chat-cli
+
 logs:
 	docker-compose logs -f
 
@@ -18,7 +21,7 @@ clean:
 
 cli:
 	docker-compose run --service-ports --rm chat-cli
-
+  
 migrate-up:
 	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://auth_user:auth_pass@localhost:5432/auth_db?sslmode=disable" up
 	docker run --rm --network host -v $(PWD)/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://user:user_pass@localhost:5433/users_db?sslmode=disable" up
