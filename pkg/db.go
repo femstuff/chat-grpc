@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"chat-grpc/pkg/config"
-	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 

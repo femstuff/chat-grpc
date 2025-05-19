@@ -1,17 +1,26 @@
 version: 2
 
 run:
-  timeout: 2m
-  skip-dirs:
-    - proto_gen
+  timeout: 5m
+  modules-download-mode: readonly
 
 linters:
   enable:
-    - staticcheck
-    - revive
-    - errcheck
-    - unused
     - govet
+    - staticcheck
+    - errcheck
+    - bodyclose
+    - noctx
+    - unparam
+    - wastedassign
+    - misspell
+    - gosec
+    - mnd
+    - gocyclo
+    - copyloopvar
+    - durationcheck
 
 issues:
   exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0

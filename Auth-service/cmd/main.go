@@ -23,7 +23,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to init logger", zap.Error(err))
 	}
-	defer log.Sync()
+	defer func() {
+		if err := log.Sync(); err != nil {
+			log.Error("Failed to sync logger", zap.Error(err))
+		}
+	}()
 
 	listener, err := net.Listen("tcp", ":"+cfg.ServerPortAuth)
 	if err != nil {

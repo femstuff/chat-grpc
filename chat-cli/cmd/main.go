@@ -265,28 +265,6 @@ func createChat(users []string) error {
 	return nil
 }
 
-func sendMessage(chatID int64, from, text string) error {
-	ctx := authContext()
-	if ctx == nil {
-		return fmt.Errorf("необходимо получить access_token")
-	}
-
-	log.Info("Sending message", zap.Int64("chat_id", chatID), zap.String("from", from))
-
-	_, err := chatClient.SendMessage(ctx, &proto_gen.SendMessageRequest{
-		ChatId: chatID,
-		From:   from,
-		Text:   text,
-	})
-	if err != nil {
-		return fmt.Errorf("ошибка отправки сообщения: %w", err)
-	}
-
-	log.Info("Message sent")
-	fmt.Println("Сообщение отправлено")
-	return nil
-}
-
 func connectToChat(chatID int64) {
 	ctx := authContext()
 	if ctx == nil {
